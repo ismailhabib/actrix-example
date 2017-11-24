@@ -11,4 +11,5 @@ export type Channel = {
 export type InterActorSystemMessage = {
   message: Message;
   targetAddress: Address;
+  senderAddress: Address | null;
 };

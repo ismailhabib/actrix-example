@@ -5,8 +5,8 @@ import { Message, Address, Channel } from "./interfaces";
 export class ActorRef {
   constructor(public address: string, private actorSystem: ActorSystem) {}
 
-  send = (message: Message) => {
-    this.actorSystem.sendMessage(this, message, this.address);
+  putToMailbox = (message: Message, senderAddress: Address | null) => {
+    this.actorSystem.sendMessage(this, message, senderAddress);
   };
 }
 export class ActorSystem {
@@ -24,7 +24,8 @@ export class ActorSystem {
       console.log("Got something from the other side", interActorSystemMessage);
       const actorRef = this.findActor(interActorSystemMessage.targetAddress);
       if (actorRef) {
-        actorRef.send(interActorSystemMessage.message);
+        const { message, senderAddress } = interActorSystemMessage;
+        actorRef.putToMailbox(message, senderAddress);
       }
     });
   }
@@ -63,11 +64,13 @@ export class ActorSystem {
     actor = this.actorRegistry[address];
 
     if (actor) {
+      console.log("actor found");
       actor.pushToMailbox(message, senderAddress);
     } else if (this.emitter) {
       console.log("trying to reach the other side");
       this.emitter.emit("message", {
         targetAddress: address,
+        senderAddress: senderAddress,
         message: message
       });
     }
