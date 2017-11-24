@@ -22,10 +22,17 @@ class App extends React.Component<{}, { message: string }> {
 
     actorSystem.createActor("clientActor", ClientActor);
 
-    actorSystem.sendMessage("serverActor", {
-      type: "none",
-      content: "Hi there"
-    });
+    actorSystem.sendMessage(
+      "serverActor",
+      {
+        content: "hi",
+        fn: () => {
+          console.log("sadsadsa");
+        },
+        other: "adsadsadsa"
+      },
+      null
+    );
   }
 
   render() {

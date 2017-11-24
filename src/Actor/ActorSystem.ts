@@ -6,7 +6,7 @@ export class ActorRef {
   constructor(public address: string, private actorSystem: ActorSystem) {}
 
   send = (message: Message) => {
-    this.actorSystem.sendMessage(this, message);
+    this.actorSystem.sendMessage(this, message, this.address);
   };
 }
 export class ActorSystem {
@@ -29,8 +29,11 @@ export class ActorSystem {
     });
   }
 
-  createActor = (name: string, Class: new (name: string) => Actor) => {
-    const actor = new Class("name");
+  createActor = (
+    name: string,
+    Class: new (name: string, actorSystem: ActorSystem) => Actor
+  ) => {
+    const actor = new Class("name", this);
     const address = name;
     this.actorRegistry[address] = actor;
   };
@@ -44,7 +47,11 @@ export class ActorSystem {
     }
   };
 
-  sendMessage = (target: ActorRef | Address, message: Message) => {
+  sendMessage = (
+    target: ActorRef | Address,
+    message: Message,
+    senderAddress: Address | null
+  ) => {
     let actor;
     let address;
     if (target instanceof ActorRef) {
@@ -56,7 +63,7 @@ export class ActorSystem {
     actor = this.actorRegistry[address];
 
     if (actor) {
-      actor.send(message);
+      actor.pushToMailbox(message, senderAddress);
     } else if (this.emitter) {
       console.log("trying to reach the other side");
       this.emitter.emit("message", {

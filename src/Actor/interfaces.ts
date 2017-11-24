@@ -1,6 +1,6 @@
-export type MessageContent = string;
+export type Message = {};
 
-export type Message = { senderAddress: Address; content: MessageContent };
+// export type Message = { senderAddress: Address; content: MessageContent };
 export type Address = string;
 
 export type Channel = {

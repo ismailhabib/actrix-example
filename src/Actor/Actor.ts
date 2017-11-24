@@ -1,21 +1,31 @@
-import { Message } from "./interfaces";
+import { Message, Address } from "./interfaces";
+import { ActorSystem, ActorRef } from "./ActorSystem";
 
 export abstract class Actor {
   private name: string;
-  private mailBox: Message[];
+  private address: Address;
+  private mailBox: { message: Message; senderAddress: Address | null }[];
   private timerId: number | null;
 
-  constructor(name: string) {
+  constructor(name: string, protected actorSystem: ActorSystem) {
     this.name = name;
+    this.address = name; // TODO
     this.mailBox = [];
     this.timerId = null;
   }
 
-  protected abstract handleMessage(message: Message): void;
+  protected abstract handleMessage(
+    message: Message,
+    senderAddress: Address | null
+  ): void;
 
-  send = (message: Message) => {
-    this.mailBox.push(message);
+  pushToMailbox = (message: Message, senderAddress: Address | null) => {
+    this.mailBox.push({ message, senderAddress });
     this.scheduleNextTick();
+  };
+
+  send = (target: ActorRef | Address, message: Message) => {
+    this.actorSystem.sendMessage(target, message, this.address);
   };
 
   private scheduleNextTick = () => {
@@ -25,15 +35,16 @@ export abstract class Actor {
   };
 
   private executeTick = async () => {
-    const message = this.mailBox.shift();
+    const msgAndSender = this.mailBox.shift();
     try {
-      if (message) {
-        await this.handleMessage(message);
+      if (msgAndSender) {
+        const { message, senderAddress } = msgAndSender;
+        await this.handleMessage(message, senderAddress);
       }
     } catch (ex) {
       console.error(
         `Actor ${this.name} failed to handle a message`,
-        message,
+        msgAndSender,
         ex
       );
     }
