@@ -28,6 +28,5 @@ actorSystem.createActor("serverActor", ServerActor);
 
 io.of("/ws").on("connection", socket => {
     console.log("A connection has been started");
-    socket.emit("greet", "Welcome!");
     actorSystem.listenTo(socket);
 });

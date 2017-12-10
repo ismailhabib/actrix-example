@@ -1,16 +1,20 @@
 import { Actor } from "./Actor";
 import { EventEmitter } from "events";
-import { Message, Address, Channel } from "./interfaces";
+import { Message, Address, Channel, Handler } from "./interfaces";
 
 export class ActorRef {
     constructor(public address: string, private actorSystem: ActorSystem) {}
 
-    putToMailbox = (message: Message, senderAddress: Address | null) => {
-        this.actorSystem.sendMessage(this, message, senderAddress);
+    putToMailbox = (
+        type: string,
+        payload: {},
+        senderAddress: Address | null
+    ) => {
+        this.actorSystem.sendMessage(this, type, payload, senderAddress);
     };
 }
 export class ActorSystem {
-    private actorRegistry: { [address: string]: Actor<Message> };
+    private actorRegistry: { [address: string]: Actor<any, any> };
 
     private emitter: Channel | undefined;
 
@@ -29,17 +33,25 @@ export class ActorSystem {
                 interActorSystemMessage.targetAddress
             );
             if (actorRef) {
-                const { message, senderAddress } = interActorSystemMessage;
-                actorRef.putToMailbox(message, senderAddress);
+                const {
+                    type,
+                    payload,
+                    senderAddress
+                } = interActorSystemMessage;
+                actorRef.putToMailbox(type, payload, senderAddress);
             }
         });
     }
-    createActor = <T extends Message>(
+    createActor = <T, U>(
         name: string,
-        Class: new (name: string, actorSystem: ActorSystem) => Actor<T>
+        Class: new (
+            name: string,
+            address: Address,
+            actorSystem: ActorSystem
+        ) => Actor<T, U>
     ) => {
-        const actor = new Class("name", this);
-        const address = name;
+        const address = name; // should have a proper mechanism to generate address
+        const actor = new Class(name, address, this);
         this.actorRegistry[address] = actor;
     };
 
@@ -52,12 +64,13 @@ export class ActorSystem {
         }
     };
 
+    // TODO: the typing is weak, if we want to take advantage of the provided type, this method needs some improvements
     sendMessage = (
         target: ActorRef | Address,
-        message: Message,
+        type: string,
+        payload: {},
         senderAddress: Address | null
     ) => {
-        let actor;
         let address;
         if (target instanceof ActorRef) {
             address = target.address;
@@ -65,17 +78,18 @@ export class ActorSystem {
             address = target;
         }
 
-        actor = this.actorRegistry[address];
+        const actor = this.actorRegistry[address];
 
         if (actor) {
             console.log("actor found");
-            actor.pushToMailbox(message, senderAddress);
+            actor.pushToMailbox(type as any, payload, senderAddress);
         } else if (this.emitter) {
             console.log("trying to reach the other side");
             this.emitter.emit("message", {
                 targetAddress: address,
                 senderAddress: senderAddress,
-                message: message
+                type: type,
+                payload: payload
             });
         }
     };

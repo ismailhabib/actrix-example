@@ -7,44 +7,42 @@ import { ClientActor } from "./ClientActor/ClientActor";
 const logo = require("./logo.svg");
 
 class App extends React.Component<{}, { message: string }> {
-  constructor(props: {}) {
-    super(props);
-    this.state = { message: "no message" };
-  }
-  componentDidMount() {
-    const socket = ioClient.connect("/ws");
-    socket.on("greet", (message: string) => {
-      this.setState({ message: message });
-    });
+    constructor(props: {}) {
+        super(props);
+        this.state = { message: "no message" };
+    }
+    componentDidMount() {
+        const socket = ioClient.connect("/ws");
+        socket.on("greet", (message: string) => {
+            this.setState({ message: message });
+        });
 
-    const actorSystem = new ActorSystem();
-    actorSystem.listenTo(socket);
+        const actorSystem = new ActorSystem();
+        actorSystem.listenTo(socket);
 
-    actorSystem.createActor("clientActor", ClientActor);
+        actorSystem.createActor("clientActor", ClientActor);
+        const actorRef = actorSystem.findActor("clientActor");
+        if (actorRef) {
+            actorRef.putToMailbox(
+                "registerCallback",
+                payload => {
+                    this.setState({ message: payload });
+                },
+                null
+            );
+        }
+    }
 
-    actorSystem.sendMessage(
-      "serverActor",
-      {
-        content: "hi",
-        fn: () => {
-          console.log("sadsadsa");
-        },
-        other: "adsadsadsa"
-      },
-      null
-    );
-  }
-
-  render() {
-    return (
-      <div className="App">
-        Latest message: {this.state.message}
-        <textarea readOnly={true}>{this.state.message}</textarea>
-        <textarea />
-        <button>Post</button>
-      </div>
-    );
-  }
+    render() {
+        return (
+            <div className="App">
+                Latest message: {this.state.message}
+                <textarea readOnly={true}>{this.state.message}</textarea>
+                <textarea />
+                <button>Post</button>
+            </div>
+        );
+    }
 }
 
 export default App;

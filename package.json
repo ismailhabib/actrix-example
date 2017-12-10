@@ -22,7 +22,7 @@
     "nodemon": "^1.12.1",
     "prettier": "^1.8.2",
     "react-scripts-ts": "2.8.0",
-    "typescript": "^2.6.2"
+    "typescript": "~2.5.0"
   },
   "scripts": {
     "start-server": "nodemon",
@@ -31,5 +31,5 @@
     "test": "react-scripts-ts test --env=jsdom",
     "eject": "react-scripts-ts eject"
   },
-  "proxy": "http://localhost:8080"
+  "proxy": "http://localhost:8888"
 }
