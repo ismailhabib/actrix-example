@@ -21,7 +21,8 @@
     "@types/react-dom": "^16.0.3",
     "nodemon": "^1.12.1",
     "prettier": "^1.8.2",
-    "react-scripts-ts": "2.8.0"
+    "react-scripts-ts": "2.8.0",
+    "typescript": "^2.6.2"
   },
   "scripts": {
     "start-server": "nodemon",

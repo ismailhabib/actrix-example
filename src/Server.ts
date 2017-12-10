@@ -9,14 +9,14 @@ const app = express();
 app.use(express.static(path.join(__dirname, "build")));
 
 app.get("/ping", (req, res) => {
-  return res.send("pong");
+    return res.send("pong");
 });
 
 // app.get("/", (req, res) => {
 //   res.sendFile(path.join(__dirname, "../build", "index.html"));
 // });
 
-const server = app.listen(process.env.PORT || 8080);
+const server = app.listen(process.env.PORT || 8888);
 console.log("App is started");
 
 const io = socketIO(server);
@@ -27,7 +27,7 @@ const actorSystem = new ActorSystem();
 actorSystem.createActor("serverActor", ServerActor);
 
 io.of("/ws").on("connection", socket => {
-  console.log("A connection has been started");
-  socket.emit("greet", "Welcome!");
-  actorSystem.listenTo(socket);
+    console.log("A connection has been started");
+    socket.emit("greet", "Welcome!");
+    actorSystem.listenTo(socket);
 });
