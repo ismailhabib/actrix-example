@@ -48,18 +48,42 @@ export abstract class Actor<T, U> {
         Class: ActorCons<V, W>,
         target: TypedActorRef<V, W> | ActorRef | Address,
         type: X,
-        payload: V[X],
-        senderAddress: Address | null
+        payload: V[X]
     ) => {
-        const tgt =
-            target instanceof TypedActorRef
-                ? target.asUntypedActorRef()
-                : target;
-        this.sendMessage(tgt, type, payload);
+        this.actorSystem.sendTypedMessage(
+            Class,
+            target,
+            type,
+            payload,
+            this.address
+        );
     };
 
     sendMessage = (target: ActorRef | Address, type: string, payload: any) => {
         this.actorSystem.sendMessage(target, type, payload, this.address);
+    };
+
+    askTyped = <V, W, K extends keyof V & keyof W>(
+        Class: ActorCons<V, W>,
+        target: ActorRef | TypedActorRef<V, W> | Address,
+        type: K,
+        payload: V[K]
+    ): Promise<W[K]> => {
+        return this.actorSystem.askTyped(
+            Class,
+            target,
+            type,
+            payload,
+            this.address
+        );
+    };
+
+    ask = (
+        target: ActorRef | Address,
+        type: string,
+        payload: any
+    ): Promise<any> => {
+        return this.actorSystem.ask(target, type, payload, this.address);
     };
 
     /**

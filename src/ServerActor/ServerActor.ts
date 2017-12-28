@@ -2,14 +2,18 @@ import { Actor } from "../Actor/Actor";
 import { Message, Address } from "../Actor/interfaces";
 import { ActorSystem } from "../Actor/ActorSystem";
 
-export type ServerActorPayload = { greet: { content: string } };
+export type ServerActorPayload = { greet: { content: string }; whoAreYou: {} };
+export type ServerActorResponse = { greet: void; whoAreYou: string };
 
-export class ServerActor extends Actor<ServerActorPayload, {}> {
+export class ServerActor extends Actor<
+    ServerActorPayload,
+    ServerActorResponse
+> {
     constructor(name: string, address: Address, actorSystem: ActorSystem) {
         super(name, address, actorSystem, {
             greet: (
                 payload: ServerActorPayload[keyof ServerActorPayload],
-                senderAddress: Address
+                senderAddress: Address | null
             ) => {
                 console.log(
                     `I received a greeting: ${JSON.stringify(
@@ -24,6 +28,9 @@ export class ServerActor extends Actor<ServerActorPayload, {}> {
                         content: "thanks!"
                     });
                 }
+            },
+            whoAreYou: (payload, senderAddress) => {
+                return "I am the ServerActor";
             }
         });
     }

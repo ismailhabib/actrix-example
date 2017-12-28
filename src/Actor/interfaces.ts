@@ -16,8 +16,10 @@ export type Channel = {
 };
 
 export type InterActorSystemMessage = {
+    mode: "send" | "ask";
     type: string;
     payload: {};
+    callback?: (message: any) => void;
     targetAddress: Address;
     senderAddress: Address | null;
 };

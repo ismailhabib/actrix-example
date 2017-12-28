@@ -19,6 +19,14 @@ export class ActorRef {
         this.actorSystem.sendMessage(this, type, payload, senderAddress);
     };
 
+    putQuestionToMailbox = (
+        type: string,
+        payload: any,
+        senderAddress: Address | null
+    ): Promise<any> => {
+        return this.actorSystem.ask(this, type, payload, senderAddress);
+    };
+
     asTypedActorRef = <T, U>(Class: ActorCons<T, U>) => {
         return new TypedActorRef<T, U>(Class, this.address, this.actorSystem);
     };
@@ -37,6 +45,18 @@ export class TypedActorRef<T, U> {
         senderAddress: Address | null
     ) => {
         return this.asUntypedActorRef().putToMailbox(
+            type,
+            payload,
+            senderAddress
+        );
+    };
+
+    putQuestionToMailbox = <K extends keyof T & keyof U>(
+        type: K,
+        payload: T[K],
+        senderAddress: Address | null
+    ): Promise<U[K]> => {
+        return this.asUntypedActorRef().putQuestionToMailbox(
             type,
             payload,
             senderAddress
@@ -68,11 +88,19 @@ export class ActorSystem {
             );
             if (actorRef) {
                 const {
+                    mode,
                     type,
                     payload,
-                    senderAddress
+                    senderAddress,
+                    callback
                 } = interActorSystemMessage;
-                actorRef.putToMailbox(type, payload, senderAddress);
+                if (mode === "send") {
+                    actorRef.putToMailbox(type, payload, senderAddress);
+                } else {
+                    actorRef
+                        .putQuestionToMailbox(type, payload, senderAddress)
+                        .then(message => callback && callback(message));
+                }
             }
         });
     }
@@ -126,6 +154,7 @@ export class ActorSystem {
         } else if (this.emitter) {
             console.log("trying to reach the other side");
             this.emitter.emit("message", {
+                mode: "send",
                 targetAddress: address,
                 senderAddress: senderAddress,
                 type: type,
@@ -134,13 +163,26 @@ export class ActorSystem {
         }
     };
 
-    // TODO: doesn't support ask via websocket yet, implementation is not done
+    askTyped = <T, U, K extends keyof T & keyof U>(
+        Class: ActorCons<T, U>,
+        target: ActorRef | TypedActorRef<T, U> | Address,
+        type: K,
+        payload: T[K],
+        senderAddress: Address | null
+    ): Promise<U[K]> => {
+        const tgt =
+            target instanceof TypedActorRef
+                ? target.asUntypedActorRef()
+                : target;
+        return this.ask(tgt, type, payload, senderAddress);
+    };
+
     ask = (
         target: ActorRef | Address,
         type: string,
-        payload: {},
+        payload: any,
         senderAddress: Address | null
-    ) => {
+    ): Promise<any> => {
         let address;
         if (target instanceof ActorRef) {
             address = target.address;
@@ -152,15 +194,28 @@ export class ActorSystem {
 
         if (actor) {
             console.log("actor found");
-            actor.pushQuestionToMailbox(type as any, payload, senderAddress);
+            return actor.pushQuestionToMailbox(
+                type as any,
+                payload,
+                senderAddress
+            );
         } else if (this.emitter) {
-            console.log("trying to reach the other side");
-            this.emitter.emit("message", {
-                targetAddress: address,
-                senderAddress: senderAddress,
-                type: type,
-                payload: payload
+            const emitter = this.emitter;
+            return new Promise<any>((resolve, reject) => {
+                console.log("trying to reach the other side");
+                emitter.emit("message", {
+                    mode: "ask",
+                    targetAddress: address,
+                    senderAddress: senderAddress,
+                    type: type,
+                    payload: payload,
+                    callback: message => {
+                        resolve(message);
+                    }
+                });
             });
+        } else {
+            return Promise.reject("Actor not found");
         }
     };
 }

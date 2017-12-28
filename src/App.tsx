@@ -31,6 +31,11 @@ class App extends React.Component<{}, { message: string }> {
                 null
             );
         }
+        // if (actorRef) {
+        //     actorRef
+        //         .asTypedActorRef(ClientActor)
+        //         .putToMailbox("greetServer", {}, null);
+        // }
     }
 
     render() {
