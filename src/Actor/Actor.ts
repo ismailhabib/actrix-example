@@ -52,7 +52,7 @@ export abstract class Actor<T, U> {
      * Sends a message to the mailbox of this actor, and returns a Promise which can be used
      * to inspect the result. Use `send` if fire-and-forget semantics suffice
      */
-    ask = <K extends keyof T & keyof U>(
+    pushQuestionToMailbox = <K extends keyof T & keyof U>(
         type: K,
         payload: T[K],
         senderAddress: Address | null

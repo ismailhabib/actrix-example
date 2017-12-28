@@ -7,10 +7,48 @@ export class ActorRef {
 
     putToMailbox = (
         type: string,
-        payload: {},
+        payload: any,
         senderAddress: Address | null
     ) => {
         this.actorSystem.sendMessage(this, type, payload, senderAddress);
+    };
+
+    asTypedActorRef = <T, U>(
+        Class: new (
+            name: string,
+            address: Address,
+            actorSystem: ActorSystem
+        ) => Actor<T, U>
+    ) => {
+        return new TypedActorRef<T, U>(Class, this.address, this.actorSystem);
+    };
+}
+
+export class TypedActorRef<T, U> {
+    constructor(
+        Class: new (
+            name: string,
+            address: Address,
+            actorSystem: ActorSystem
+        ) => Actor<T, U>,
+        public address: string,
+        private actorSystem: ActorSystem
+    ) {}
+
+    putToMailbox = <K extends keyof T & keyof U>(
+        type: K,
+        payload: T[K],
+        senderAddress: Address | null
+    ) => {
+        return this.asUntypedActorRef().putToMailbox(
+            type,
+            payload,
+            senderAddress
+        );
+    };
+
+    asUntypedActorRef = () => {
+        return new ActorRef(this.address, this.actorSystem);
     };
 }
 export class ActorSystem {
@@ -64,8 +102,37 @@ export class ActorSystem {
         }
     };
 
-    // TODO: the typing is weak, if we want to take advantage of the provided type, this method needs some improvements
     sendMessage = (
+        target: ActorRef | Address,
+        type: string,
+        payload: any,
+        senderAddress: Address | null
+    ) => {
+        let address;
+        if (target instanceof ActorRef) {
+            address = target.address;
+        } else {
+            address = target;
+        }
+
+        const actor = this.actorRegistry[address];
+
+        if (actor) {
+            console.log("actor found");
+            actor.pushToMailbox(type as any, payload, senderAddress);
+        } else if (this.emitter) {
+            console.log("trying to reach the other side");
+            this.emitter.emit("message", {
+                targetAddress: address,
+                senderAddress: senderAddress,
+                type: type,
+                payload: payload
+            });
+        }
+    };
+
+    // TODO: doesn't support ask via websocket yet, implementation is not done
+    ask = (
         target: ActorRef | Address,
         type: string,
         payload: {},
@@ -82,7 +149,7 @@ export class ActorSystem {
 
         if (actor) {
             console.log("actor found");
-            actor.pushToMailbox(type as any, payload, senderAddress);
+            actor.pushQuestionToMailbox(type as any, payload, senderAddress);
         } else if (this.emitter) {
             console.log("trying to reach the other side");
             this.emitter.emit("message", {

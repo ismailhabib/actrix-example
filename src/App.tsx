@@ -1,8 +1,8 @@
 import * as React from "react";
 import "./App.css";
 import * as ioClient from "socket.io-client";
-import { ActorSystem } from "./Actor/ActorSystem";
-import { ClientActor } from "./ClientActor/ClientActor";
+import { ActorSystem, TypedActorRef } from "./Actor/ActorSystem";
+import { ClientActor, ClientActorPayload } from "./ClientActor/ClientActor";
 
 const logo = require("./logo.svg");
 
@@ -23,7 +23,7 @@ class App extends React.Component<{}, { message: string }> {
         actorSystem.createActor("clientActor", ClientActor);
         const actorRef = actorSystem.findActor("clientActor");
         if (actorRef) {
-            actorRef.putToMailbox(
+            actorRef.asTypedActorRef(ClientActor).putToMailbox(
                 "registerCallback",
                 payload => {
                     this.setState({ message: payload });

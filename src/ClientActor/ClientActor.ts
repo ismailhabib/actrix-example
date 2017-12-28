@@ -7,11 +7,19 @@ export type ClientActorPayload = {
     registerCallback: (message: string) => void;
 };
 
-export class ClientActor extends Actor<ClientActorPayload, {}> {
+export type ClientActorResponse = {
+    greet: void;
+    registerCallback: void;
+};
+
+export class ClientActor extends Actor<
+    ClientActorPayload,
+    ClientActorResponse
+> {
     callback: (message: string) => void;
     constructor(name: string, address: Address, actorSystem: ActorSystem) {
         super(name, address, actorSystem, {
-            greet: (payload, senderAddress: Address) => {
+            greet: (payload, senderAddress) => {
                 console.log("Client: I received a greeting", payload);
                 this.callback(payload.content);
             },
@@ -31,7 +39,4 @@ export class ClientActor extends Actor<ClientActorPayload, {}> {
             });
         }, 5000);
     }
-    // protected handleMessage(message: Message, senderAddress: Address | null) {
-    //     console.log("Client: I received a greeting", message);
-    // }
 }
