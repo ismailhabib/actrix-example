@@ -30,7 +30,7 @@ export class ClientActor extends Actor<
         });
 
         setTimeout(() => {
-            this.send("serverActor", "greet", {
+            this.sendMessage("serverActor", "greet", {
                 content: "hi",
                 fn: () => {
                     console.log("sadsadsa");

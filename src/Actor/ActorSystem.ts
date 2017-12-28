@@ -2,6 +2,12 @@ import { Actor } from "./Actor";
 import { EventEmitter } from "events";
 import { Message, Address, Channel, Handler } from "./interfaces";
 
+export type ActorCons<T, U> = new (
+    name: string,
+    address: Address,
+    actorSystem: ActorSystem
+) => Actor<T, U>;
+
 export class ActorRef {
     constructor(public address: string, private actorSystem: ActorSystem) {}
 
@@ -13,24 +19,14 @@ export class ActorRef {
         this.actorSystem.sendMessage(this, type, payload, senderAddress);
     };
 
-    asTypedActorRef = <T, U>(
-        Class: new (
-            name: string,
-            address: Address,
-            actorSystem: ActorSystem
-        ) => Actor<T, U>
-    ) => {
+    asTypedActorRef = <T, U>(Class: ActorCons<T, U>) => {
         return new TypedActorRef<T, U>(Class, this.address, this.actorSystem);
     };
 }
 
 export class TypedActorRef<T, U> {
     constructor(
-        Class: new (
-            name: string,
-            address: Address,
-            actorSystem: ActorSystem
-        ) => Actor<T, U>,
+        Class: ActorCons<T, U>,
         public address: string,
         private actorSystem: ActorSystem
     ) {}
@@ -80,14 +76,7 @@ export class ActorSystem {
             }
         });
     }
-    createActor = <T, U>(
-        name: string,
-        Class: new (
-            name: string,
-            address: Address,
-            actorSystem: ActorSystem
-        ) => Actor<T, U>
-    ) => {
+    createActor = <T, U>(name: string, Class: ActorCons<T, U>) => {
         const address = name; // should have a proper mechanism to generate address
         const actor = new Class(name, address, this);
         this.actorRegistry[address] = actor;
@@ -100,6 +89,20 @@ export class ActorSystem {
         } else {
             return null;
         }
+    };
+
+    sendTypedMessage = <T, U, K extends keyof T & keyof U>(
+        Class: ActorCons<T, U>,
+        target: ActorRef | TypedActorRef<T, U> | Address,
+        type: K,
+        payload: T[K],
+        senderAddress: Address | null
+    ) => {
+        const tgt =
+            target instanceof TypedActorRef
+                ? target.asUntypedActorRef()
+                : target;
+        this.sendMessage(tgt, type, payload, senderAddress);
     };
 
     sendMessage = (

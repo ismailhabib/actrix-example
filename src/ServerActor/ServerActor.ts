@@ -20,7 +20,7 @@ export class ServerActor extends Actor<ServerActorPayload, {}> {
                 );
 
                 if (senderAddress) {
-                    this.send(senderAddress, "greet", {
+                    this.sendMessage(senderAddress, "greet", {
                         content: "thanks!"
                     });
                 }

@@ -1,4 +1,4 @@
-import { ActorSystem, ActorRef } from "./ActorSystem";
+import { ActorSystem, ActorRef, ActorCons, TypedActorRef } from "./ActorSystem";
 import { Address, Handler } from "./interfaces";
 
 type MailBoxMessage<T, U, V> = {
@@ -44,7 +44,21 @@ export abstract class Actor<T, U> {
         this.scheduleNextTick();
     };
 
-    send = (target: ActorRef | Address, type: string, payload: {}) => {
+    sendTypedMessage = <V, W, X extends keyof V & keyof W>(
+        Class: ActorCons<V, W>,
+        target: TypedActorRef<V, W> | ActorRef | Address,
+        type: X,
+        payload: V[X],
+        senderAddress: Address | null
+    ) => {
+        const tgt =
+            target instanceof TypedActorRef
+                ? target.asUntypedActorRef()
+                : target;
+        this.sendMessage(tgt, type, payload);
+    };
+
+    sendMessage = (target: ActorRef | Address, type: string, payload: any) => {
         this.actorSystem.sendMessage(target, type, payload, this.address);
     };
 
