@@ -1,5 +1,7 @@
 {
     "workbench.colorTheme": "Adapta Nokto",
     "prettier.tabWidth": 4,
-    "typescript.tsdk": "node_modules/typescript/lib"
+    "prettier.proseWrap": false,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "editor.formatOnSave": true
 }
