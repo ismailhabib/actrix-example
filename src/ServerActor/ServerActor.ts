@@ -24,7 +24,7 @@ export class ServerActor extends Actor<
                 payload: ServerActorPayload[keyof ServerActorPayload],
                 senderAddress: Address | null
             ) => {
-                console.log(
+                this.log(
                     `I received a greeting: ${JSON.stringify(
                         payload,
                         null,
@@ -39,7 +39,7 @@ export class ServerActor extends Actor<
                 }
             },
             whoAreYou: (payload, senderAddress) => {
-                console.log("Who am I you said?");
+                this.log("Who am I you said?");
                 this.sendToSelf("askActor", { address: senderAddress! });
                 return "I am the ServerActor";
             },
@@ -50,7 +50,7 @@ export class ServerActor extends Actor<
                     "whoAreYou",
                     {}
                 );
-                console.log(
+                this.log(
                     "The one who send me message earlier is ",
                     theOtherActorName
                 );

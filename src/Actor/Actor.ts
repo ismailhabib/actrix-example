@@ -27,10 +27,6 @@ export abstract class Actor<T, U> {
         this.timerId = null;
     }
 
-    /**
-     * Send adds a message to the mailbox of this actor, but does not await the result.
-     * If you need the result of handling the message, use `ask`
-     */
     pushToMailbox = <K extends keyof T & keyof U>(
         type: K,
         payload: T[K],
@@ -96,10 +92,6 @@ export abstract class Actor<T, U> {
         return this.actorSystem.ask(target, type, payload, this.address);
     };
 
-    /**
-     * Sends a message to the mailbox of this actor, and returns a Promise which can be used
-     * to inspect the result. Use `send` if fire-and-forget semantics suffice
-     */
     pushQuestionToMailbox = <K extends keyof T & keyof U>(
         type: K,
         payload: T[K],
@@ -121,6 +113,10 @@ export abstract class Actor<T, U> {
             this.scheduleNextTick();
         });
     };
+
+    protected log(...message: any[]) {
+        console.log(`${this.name}:`, ...message);
+    }
 
     private async handleMessage<K extends keyof T & keyof U>(
         type: K,

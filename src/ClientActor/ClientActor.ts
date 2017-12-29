@@ -25,29 +25,27 @@ export class ClientActor extends Actor<
     constructor(name: string, address: Address, actorSystem: ActorSystem) {
         super(name, address, actorSystem, {
             greet: (payload, senderAddress) => {
-                console.log("Client: I received a greeting", payload);
+                this.log("I received a greeting", payload);
                 this.callback(payload.content);
             },
             registerCallback: (callback: (message: string) => void) => {
-                console.log("register callback");
+                this.log("Register callback");
                 this.callback = callback;
             },
             whoAreYou: (payload, senderAddress) => {
-                return "I am client actor";
+                return "I am the Client Actor";
             }
         });
 
         setTimeout(() => {
-            this.sendMessage("serverActor", "greet", {
-                content: "hi",
-                fn: () => {
-                    console.log("sadsadsa");
-                },
-                other: "adsadsadsa"
+            this.log("I am sending serverActor a greet");
+            this.sendTypedMessage(ServerActor, "serverActor", "greet", {
+                content: "hi"
             });
         }, 5000);
 
         setTimeout(() => {
+            this.log("I am sending serverActor a question");
             this.askTyped(ServerActor, "serverActor", "whoAreYou", {}).then(
                 message => this.callback(message)
             );
