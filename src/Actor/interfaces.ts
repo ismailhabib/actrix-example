@@ -11,15 +11,24 @@ export type Handler<T, U> = {
 };
 
 export type Channel = {
-    on: (event: string, fn: (message: InterActorSystemMessage) => void) => void;
-    emit: (event: string, message: InterActorSystemMessage) => void;
+    on: (
+        event: string,
+        fn: (
+            message: InterActorSystemMessage,
+            callback: (message: any) => void
+        ) => void
+    ) => void;
+    emit: (
+        event: string,
+        message: InterActorSystemMessage,
+        callback?: (message: any) => void
+    ) => void;
 };
 
 export type InterActorSystemMessage = {
     mode: "send" | "ask";
     type: string;
     payload: {};
-    callback?: (message: any) => void;
     targetAddress: Address;
     senderAddress: Address | null;
 };

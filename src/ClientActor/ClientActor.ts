@@ -6,12 +6,14 @@ import { ServerActor } from "../ServerActor/ServerActor";
 export type ClientActorPayload = {
     greet: { content: string };
     registerCallback: (message: string) => void;
+    whoAreYou: {};
     // greetServer: {};
 };
 
 export type ClientActorResponse = {
     greet: void;
     registerCallback: void;
+    whoAreYou: string;
     // greetServer: void;
 };
 
@@ -29,16 +31,10 @@ export class ClientActor extends Actor<
             registerCallback: (callback: (message: string) => void) => {
                 console.log("register callback");
                 this.callback = callback;
+            },
+            whoAreYou: (payload, senderAddress) => {
+                return "I am client actor";
             }
-            // ,
-            // greetServer: (payload, senderAddres) => {
-            //     this.askTyped(
-            //         ServerActor,
-            //         actorSystem.findActor("serverActor")!,
-            //         "whoAreYou",
-            //         {}
-            //     ).then(message => this.callback(message));
-            // }
         });
 
         setTimeout(() => {
@@ -52,7 +48,9 @@ export class ClientActor extends Actor<
         }, 5000);
 
         setTimeout(() => {
-            this.sendTypedMessage(ServerActor, "serverActor", "whoAreYou", {});
+            this.askTyped(ServerActor, "serverActor", "whoAreYou", {}).then(
+                message => this.callback(message)
+            );
         }, 10000);
     }
 }

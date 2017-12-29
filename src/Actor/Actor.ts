@@ -63,6 +63,16 @@ export abstract class Actor<T, U> {
         this.actorSystem.sendMessage(target, type, payload, this.address);
     };
 
+    sendToSelf = <K extends keyof T & keyof U>(
+        type: K,
+        payload: T[K],
+        delay?: number
+    ) => {
+        setTimeout(() => {
+            this.pushToMailbox(type, payload, this.address);
+        }, delay || 0);
+    };
+
     askTyped = <V, W, K extends keyof V & keyof W>(
         Class: ActorCons<V, W>,
         target: ActorRef | TypedActorRef<V, W> | Address,
@@ -112,7 +122,7 @@ export abstract class Actor<T, U> {
         });
     };
 
-    protected async handleMessage<K extends keyof T & keyof U>(
+    private async handleMessage<K extends keyof T & keyof U>(
         type: K,
         payload: T[K],
         senderAddress: Address | null

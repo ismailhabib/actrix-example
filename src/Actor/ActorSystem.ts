@@ -78,7 +78,7 @@ export class ActorSystem {
 
     listenTo(emitter: Channel) {
         this.emitter = emitter;
-        emitter.on("message", interActorSystemMessage => {
+        emitter.on("message", (interActorSystemMessage, cb) => {
             console.log(
                 "Got something from the other side",
                 interActorSystemMessage
@@ -91,15 +91,16 @@ export class ActorSystem {
                     mode,
                     type,
                     payload,
-                    senderAddress,
-                    callback
+                    senderAddress
                 } = interActorSystemMessage;
                 if (mode === "send") {
                     actorRef.putToMailbox(type, payload, senderAddress);
                 } else {
                     actorRef
                         .putQuestionToMailbox(type, payload, senderAddress)
-                        .then(message => callback && callback(message));
+                        .then(message => {
+                            cb(message);
+                        });
                 }
             }
         });
@@ -203,16 +204,19 @@ export class ActorSystem {
             const emitter = this.emitter;
             return new Promise<any>((resolve, reject) => {
                 console.log("trying to reach the other side");
-                emitter.emit("message", {
-                    mode: "ask",
-                    targetAddress: address,
-                    senderAddress: senderAddress,
-                    type: type,
-                    payload: payload,
-                    callback: message => {
+                emitter.emit(
+                    "message",
+                    {
+                        mode: "ask",
+                        targetAddress: address,
+                        senderAddress: senderAddress,
+                        type: type,
+                        payload: payload
+                    },
+                    message => {
                         resolve(message);
                     }
-                });
+                );
             });
         } else {
             return Promise.reject("Actor not found");
