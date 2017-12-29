@@ -1,6 +1,12 @@
 import { Actor } from "./Actor";
 import { EventEmitter } from "events";
-import { Message, Address, Channel, Handler } from "./interfaces";
+import {
+    Message,
+    Address,
+    Channel,
+    Handler,
+    InterActorSystemMessage
+} from "./interfaces";
 
 export type ActorCons<T, U> = new (
     name: string,
@@ -70,14 +76,29 @@ export class TypedActorRef<T, U> {
 export class ActorSystem {
     private actorRegistry: { [address: string]: Actor<any, any> };
 
-    private emitter: Channel | undefined;
+    private emitters: Channel[] = [];
 
     constructor() {
         this.actorRegistry = {};
     }
 
+    private broadcast(
+        event: string,
+        msg: InterActorSystemMessage,
+        callback?: (message: any) => void
+    ) {
+        this.emitters.forEach(emitter => emitter.emit(event, msg, callback));
+    }
+
     listenTo(emitter: Channel) {
-        this.emitter = emitter;
+        this.emitters.push(emitter);
+        emitter.on("disconnect", () => {
+            this.log("Removing listener");
+            const index = this.emitters.indexOf(emitter);
+            if (index > -1) {
+                this.emitters = this.emitters.splice(index, 1);
+            }
+        });
         emitter.on("message", (interActorSystemMessage, cb) => {
             this.log(
                 "Received a message from across the system boundary",
@@ -190,11 +211,11 @@ export class ActorSystem {
         if (actor) {
             this.log("Found the actor. Sending the message");
             actor.pushToMailbox(type as any, payload, senderAddress);
-        } else if (this.emitter) {
+        } else if (this.emitters) {
             this.log(
                 "Cannot find the actor locally, will try to send it to the other side"
             );
-            this.emitter.emit("message", {
+            this.broadcast("message", {
                 mode: "send",
                 targetAddress: address,
                 senderAddress: senderAddress,
@@ -249,13 +270,13 @@ export class ActorSystem {
                 payload,
                 senderAddress
             );
-        } else if (this.emitter) {
+        } else if (this.emitters) {
             this.log(
                 "Cannot find the actor locally, will try to send it to the other side"
             );
-            const emitter = this.emitter;
+            const emitter = this.emitters;
             return new Promise<any>((resolve, reject) => {
-                emitter.emit(
+                this.broadcast(
                     "message",
                     {
                         mode: "ask",

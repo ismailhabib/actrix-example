@@ -5,7 +5,7 @@ export type Address = string;
 
 export type Handler<T, U> = {
     [P in (keyof T & keyof U)]: (
-        val: T[P],
+        payload: T[P],
         senderAddress: Address | null
     ) => U[P]
 };

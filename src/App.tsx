@@ -3,6 +3,7 @@ import "./App.css";
 import * as ioClient from "socket.io-client";
 import { ActorSystem, TypedActorRef } from "./Actor/ActorSystem";
 import { ClientActor, ClientActorPayload } from "./ClientActor/ClientActor";
+import { Chat } from "./Chat";
 
 const logo = require("./logo.svg");
 
@@ -12,29 +13,22 @@ class App extends React.Component<{}, { message: string }> {
         this.state = { message: "no message" };
     }
     componentDidMount() {
-        const socket = ioClient.connect("/ws");
-        socket.on("greet", (message: string) => {
-            this.setState({ message: message });
-        });
-
-        const actorSystem = new ActorSystem();
-        actorSystem.listenTo(socket);
-
-        actorSystem.createActor("clientActor", ClientActor);
-        const actorRef = actorSystem.findActor("clientActor");
-        if (actorRef) {
-            actorRef.asTypedActorRef(ClientActor).putToMailbox(
-                "registerCallback",
-                payload => {
-                    this.setState({ message: payload });
-                },
-                null
-            );
-        }
+        // const socket = ioClient.connect("/ws");
+        // socket.on("greet", (message: string) => {
+        //     this.setState({ message: message });
+        // });
+        // const actorSystem = new ActorSystem();
+        // actorSystem.listenTo(socket);
+        // actorSystem.createActor("clientActor", ClientActor);
+        // const actorRef = actorSystem.findActor("clientActor");
         // if (actorRef) {
-        //     actorRef
-        //         .asTypedActorRef(ClientActor)
-        //         .putToMailbox("greetServer", {}, null);
+        //     actorRef.asTypedActorRef(ClientActor).putToMailbox(
+        //         "registerCallback",
+        //         payload => {
+        //             this.setState({ message: payload });
+        //         },
+        //         null
+        //     );
         // }
     }
 
@@ -45,6 +39,7 @@ class App extends React.Component<{}, { message: string }> {
                 <textarea readOnly={true}>{this.state.message}</textarea>
                 <textarea />
                 <button>Post</button>
+                <Chat />
             </div>
         );
     }
