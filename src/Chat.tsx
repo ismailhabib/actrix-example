@@ -42,7 +42,10 @@ export class Chat extends React.Component<
     render() {
         console.log(this.state.messages);
         const messages = this.state.messages.reduce(
-            (prev, cur) => `${prev}\n${cur.user}:${cur.message}`,
+            (prev, cur) =>
+                `${prev}\n${cur.user.actorSystemName}/${
+                    cur.user.localAddress
+                }:${cur.message}`,
             ""
         );
         console.log("Combine messages", messages);
