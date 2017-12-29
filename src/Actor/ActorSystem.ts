@@ -276,14 +276,14 @@ export class ActorSystem {
             "Payload",
             payload
         );
-        let address;
+        let address: Address;
         if (target instanceof ActorRef) {
             address = target.address;
         } else {
             address = target;
         }
 
-        const actor = this.actorRegistry[address];
+        const actor = this.actorRegistry[address.localAddress];
 
         if (actor) {
             this.log("Found the actor. Sending the question");
