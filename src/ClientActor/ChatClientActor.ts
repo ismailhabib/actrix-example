@@ -34,14 +34,24 @@ export class ChatClientActor extends Actor<
                 this.listener(this.messages);
             },
             send: (payload, senderAddress) => {
-                this.sendTypedMessage(ChatActor, "chatActor", "post", {
-                    message: payload.message
-                });
+                this.sendTypedMessage(
+                    ChatActor,
+                    { actorSystemName: "server", localAddress: "chatActor" },
+                    "post",
+                    {
+                        message: payload.message
+                    }
+                );
             }
         });
 
         setTimeout(() => {
-            this.sendTypedMessage(ChatActor, "chatActor", "subscribe", {});
+            this.sendTypedMessage(
+                ChatActor,
+                { actorSystemName: "server", localAddress: "chatActor" },
+                "subscribe",
+                {}
+            );
         }, 1000);
     }
 }

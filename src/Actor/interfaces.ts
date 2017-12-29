@@ -1,7 +1,10 @@
 export type Message = {};
 
-// export type Message = { senderAddress: Address; content: MessageContent };
-export type Address = string;
+export type LocalAddress = string;
+export type Address = {
+    actorSystemName: string;
+    localAddress: LocalAddress;
+};
 
 export type Handler<T, U> = {
     [P in (keyof T & keyof U)]: (

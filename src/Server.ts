@@ -32,7 +32,7 @@ console.log("Web socket server is started");
 //     actorSystem.listenTo(socket);
 // });
 
-const actorSystem = new ActorSystem();
+const actorSystem = new ActorSystem("server");
 
 actorSystem.createActor("chatActor", ChatActor);
 

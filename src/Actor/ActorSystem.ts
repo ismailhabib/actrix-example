@@ -7,6 +7,7 @@ import {
     Handler,
     InterActorSystemMessage
 } from "./interfaces";
+import * as uuid from "uuid";
 
 export type ActorCons<T, U> = new (
     name: string,
@@ -15,7 +16,7 @@ export type ActorCons<T, U> = new (
 ) => Actor<T, U>;
 
 export class ActorRef {
-    constructor(public address: string, private actorSystem: ActorSystem) {}
+    constructor(public address: Address, private actorSystem: ActorSystem) {}
 
     putToMailbox = (
         type: string,
@@ -41,7 +42,7 @@ export class ActorRef {
 export class TypedActorRef<T, U> {
     constructor(
         Class: ActorCons<T, U>,
-        public address: string,
+        public address: Address,
         private actorSystem: ActorSystem
     ) {}
 
@@ -78,7 +79,10 @@ export class ActorSystem {
 
     private emitters: Channel[] = [];
 
-    constructor() {
+    name: string;
+
+    constructor(name?: string) {
+        this.name = name || uuid.v1();
         this.actorRegistry = {};
     }
 
@@ -156,13 +160,31 @@ export class ActorSystem {
         this.log(
             `Creating an actor with name: ${name} and type: ${Class.name}`
         );
-        const address = name; // should have a proper mechanism to generate address
-        const actor = new Class(name, address, this);
+        const address = name; // TODO: should have a proper mechanism to generate address
+        const actor = new Class(
+            name,
+            { actorSystemName: this.name, localAddress: address },
+            this
+        );
         this.actorRegistry[address] = actor;
     };
 
+    // findActor = (address: Address): ActorRef | null => {
+    //     const actor = this.actorRegistry[address];
+    //     if (actor) {
+    //         return new ActorRef(address, this);
+    //     } else {
+    //         return null;
+    //     }
+    // };
     findActor = (address: Address): ActorRef | null => {
-        const actor = this.actorRegistry[address];
+        if (address.actorSystemName !== this.name) {
+            this.log(
+                "This address contains reference to other actor system, you won't find it in this actor system"
+            );
+            return null;
+        }
+        const actor = this.actorRegistry[address.localAddress];
         if (actor) {
             return new ActorRef(address, this);
         } else {
@@ -199,14 +221,14 @@ export class ActorSystem {
             "Payload",
             payload
         );
-        let address;
+        let address: Address;
         if (target instanceof ActorRef) {
             address = target.address;
         } else {
             address = target;
         }
 
-        const actor = this.actorRegistry[address];
+        const actor = this.actorRegistry[address.localAddress];
 
         if (actor) {
             this.log("Found the actor. Sending the message");

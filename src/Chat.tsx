@@ -22,7 +22,10 @@ export class Chat extends React.Component<
         this.actorSystem.listenTo(socket);
 
         this.actorSystem.createActor(this.name, ChatClientActor);
-        const actorRef = this.actorSystem.findActor(this.name);
+        const actorRef = this.actorSystem.findActor({
+            actorSystemName: this.actorSystem.name,
+            localAddress: this.name
+        });
         if (actorRef) {
             actorRef.asTypedActorRef(ChatClientActor).putToMailbox(
                 "registerListener",
@@ -53,7 +56,10 @@ export class Chat extends React.Component<
                 />
                 <button
                     onClick={() => {
-                        this.actorSystem!.findActor(this.name)!
+                        this.actorSystem!.findActor({
+                            actorSystemName: this.actorSystem!.name,
+                            localAddress: this.name
+                        })!
                             .asTypedActorRef(ChatClientActor)
                             .putToMailbox(
                                 "send",

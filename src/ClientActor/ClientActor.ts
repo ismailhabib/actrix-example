@@ -37,18 +37,18 @@ export class ClientActor extends Actor<
             }
         });
 
-        setTimeout(() => {
-            this.log("I am sending serverActor a greet");
-            this.sendTypedMessage(ServerActor, "serverActor", "greet", {
-                content: "hi"
-            });
-        }, 5000);
+        // setTimeout(() => {
+        //     this.log("I am sending serverActor a greet");
+        //     this.sendTypedMessage(ServerActor, "serverActor", "greet", {
+        //         content: "hi"
+        //     });
+        // }, 5000);
 
-        setTimeout(() => {
-            this.log("I am sending serverActor a question");
-            this.askTyped(ServerActor, "serverActor", "whoAreYou", {}).then(
-                message => this.callback(message)
-            );
-        }, 10000);
+        // setTimeout(() => {
+        //     this.log("I am sending serverActor a question");
+        //     this.askTyped(ServerActor, "serverActor", "whoAreYou", {}).then(
+        //         message => this.callback(message)
+        //     );
+        // }, 10000);
     }
 }

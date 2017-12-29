@@ -17,7 +17,7 @@ export type ChatActorResponse = {
 
 export type ChatMessage = {
     message: string;
-    user: string;
+    user: Address;
 };
 export class ChatActor extends Actor<ChatActorPayload, ChatActorResponse> {
     subscribers: Address[] = [];
