@@ -34,7 +34,7 @@ export class ActorRef {
         return this.actorSystem.ask(this, type, payload, senderAddress);
     };
 
-    asTypedActorRef = <T, U>(Class: ActorCons<T, U>) => {
+    typed = <T, U>(Class: ActorCons<T, U>) => {
         return new TypedActorRef<T, U>(Class, this.address, this.actorSystem);
     };
 }
@@ -51,11 +51,7 @@ export class TypedActorRef<T, U> {
         payload: T[K],
         senderAddress: Address | null
     ) => {
-        return this.asUntypedActorRef().putToMailbox(
-            type,
-            payload,
-            senderAddress
-        );
+        return this.untyped().putToMailbox(type, payload, senderAddress);
     };
 
     putQuestionToMailbox = <K extends keyof T & keyof U>(
@@ -63,14 +59,14 @@ export class TypedActorRef<T, U> {
         payload: T[K],
         senderAddress: Address | null
     ): Promise<U[K]> => {
-        return this.asUntypedActorRef().putQuestionToMailbox(
+        return this.untyped().putQuestionToMailbox(
             type,
             payload,
             senderAddress
         );
     };
 
-    asUntypedActorRef = () => {
+    untyped = () => {
         return new ActorRef(this.address, this.actorSystem);
     };
 }
@@ -169,14 +165,10 @@ export class ActorSystem {
         this.actorRegistry[address] = actor;
     };
 
-    // findActor = (address: Address): ActorRef | null => {
-    //     const actor = this.actorRegistry[address];
-    //     if (actor) {
-    //         return new ActorRef(address, this);
-    //     } else {
-    //         return null;
-    //     }
-    // };
+    ref = (address: Address): ActorRef => {
+        return new ActorRef(address, this);
+    };
+
     findActor = (address: Address): ActorRef | null => {
         if (address.actorSystemName !== this.name) {
             this.log(
@@ -193,16 +185,14 @@ export class ActorSystem {
     };
 
     sendTypedMessage = <T, U, K extends keyof T & keyof U>(
-        Class: ActorCons<T, U>,
+        Class: ActorCons<T, U>
+    ) => (
         target: ActorRef | TypedActorRef<T, U> | Address,
         type: K,
         payload: T[K],
         senderAddress: Address | null
     ) => {
-        const tgt =
-            target instanceof TypedActorRef
-                ? target.asUntypedActorRef()
-                : target;
+        const tgt = target instanceof TypedActorRef ? target.untyped() : target;
         this.sendMessage(tgt, type, payload, senderAddress);
     };
 
@@ -247,17 +237,13 @@ export class ActorSystem {
         }
     };
 
-    askTyped = <T, U, K extends keyof T & keyof U>(
-        Class: ActorCons<T, U>,
+    askTyped = <T, U, K extends keyof T & keyof U>(Class: ActorCons<T, U>) => (
         target: ActorRef | TypedActorRef<T, U> | Address,
         type: K,
         payload: T[K],
         senderAddress: Address | null
     ): Promise<U[K]> => {
-        const tgt =
-            target instanceof TypedActorRef
-                ? target.asUntypedActorRef()
-                : target;
+        const tgt = target instanceof TypedActorRef ? target.untyped() : target;
         return this.ask(tgt, type, payload, senderAddress);
     };
 

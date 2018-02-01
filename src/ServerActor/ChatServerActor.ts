@@ -19,7 +19,10 @@ export type ChatMessage = {
     message: string;
     user: Address;
 };
-export class ChatActor extends Actor<ChatActorPayload, ChatActorResponse> {
+export class ChatServerActor extends Actor<
+    ChatActorPayload,
+    ChatActorResponse
+> {
     subscribers: Address[] = [];
     messages: ChatMessage[] = [];
 
@@ -28,8 +31,7 @@ export class ChatActor extends Actor<ChatActorPayload, ChatActorResponse> {
             subscribe: (payload, senderAddress) => {
                 this.log(`Subscribe request from ${senderAddress}`);
                 this.subscribers.push(senderAddress!);
-                this.sendTypedMessage(
-                    ChatClientActor,
+                this.sendTypedMessage(ChatClientActor)(
                     senderAddress!,
                     "update",
                     { messages: this.messages }
@@ -56,8 +58,7 @@ export class ChatActor extends Actor<ChatActorPayload, ChatActorResponse> {
                 };
                 this.messages.push(newMessage);
                 this.subscribers.forEach(subscriber => {
-                    this.sendTypedMessage(
-                        ChatClientActor,
+                    this.sendTypedMessage(ChatClientActor)(
                         subscriber,
                         "update",
                         { messages: [newMessage] }

@@ -41,13 +41,13 @@ export abstract class Actor<T, U> {
     };
 
     sendTypedMessage = <V, W, X extends keyof V & keyof W>(
-        Class: ActorCons<V, W>,
+        Class: ActorCons<V, W>
+    ) => (
         target: TypedActorRef<V, W> | ActorRef | Address,
         type: X,
         payload: V[X]
     ) => {
-        this.actorSystem.sendTypedMessage(
-            Class,
+        this.actorSystem.sendTypedMessage(Class)(
             target,
             type,
             payload,
@@ -69,14 +69,12 @@ export abstract class Actor<T, U> {
         }, delay || 0);
     };
 
-    askTyped = <V, W, K extends keyof V & keyof W>(
-        Class: ActorCons<V, W>,
+    askTyped = <V, W, K extends keyof V & keyof W>(Class: ActorCons<V, W>) => (
         target: ActorRef | TypedActorRef<V, W> | Address,
         type: K,
         payload: V[K]
     ): Promise<W[K]> => {
-        return this.actorSystem.askTyped(
-            Class,
+        return this.actorSystem.askTyped(Class)(
             target,
             type,
             payload,
@@ -112,6 +110,10 @@ export abstract class Actor<T, U> {
             });
             this.scheduleNextTick();
         });
+    };
+
+    ref = (address: Address) => {
+        return this.actorSystem.ref(address);
     };
 
     protected log(...message: any[]) {

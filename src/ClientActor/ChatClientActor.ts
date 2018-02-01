@@ -1,7 +1,7 @@
 import { Actor } from "../Actor/Actor";
 import { Address } from "../Actor/interfaces";
 import { ActorSystem } from "../Actor/ActorSystem";
-import { ChatMessage, ChatActor } from "../ServerActor/ChatActor";
+import { ChatMessage, ChatServerActor } from "../ServerActor/ChatServerActor";
 import { setTimeout } from "timers";
 
 export type ChatClientActorPayload = {
@@ -34,8 +34,7 @@ export class ChatClientActor extends Actor<
                 this.listener(this.messages);
             },
             send: (payload, senderAddress) => {
-                this.sendTypedMessage(
-                    ChatActor,
+                this.sendTypedMessage(ChatServerActor)(
                     { actorSystemName: "server", localAddress: "chatActor" },
                     "post",
                     {
@@ -46,8 +45,7 @@ export class ChatClientActor extends Actor<
         });
 
         setTimeout(() => {
-            this.sendTypedMessage(
-                ChatActor,
+            this.sendTypedMessage(ChatServerActor)(
                 { actorSystemName: "server", localAddress: "chatActor" },
                 "subscribe",
                 {}

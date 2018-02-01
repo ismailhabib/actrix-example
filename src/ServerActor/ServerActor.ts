@@ -44,8 +44,7 @@ export class ServerActor extends Actor<
                 return "I am the ServerActor";
             },
             askActor: async (payload, senderAddress) => {
-                const theOtherActorName = await this.askTyped(
-                    ClientActor,
+                const theOtherActorName = await this.askTyped(ClientActor)(
                     payload.address,
                     "whoAreYou",
                     {}

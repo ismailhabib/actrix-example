@@ -1,4 +1,4 @@
-import { ChatMessage } from "./ServerActor/ChatActor";
+import { ChatMessage } from "./ServerActor/ChatServerActor";
 import * as React from "react";
 import * as ioClient from "socket.io-client";
 import { ActorSystem } from "./Actor/ActorSystem";
@@ -27,7 +27,7 @@ export class Chat extends React.Component<
             localAddress: this.name
         });
         if (actorRef) {
-            actorRef.asTypedActorRef(ChatClientActor).putToMailbox(
+            actorRef.typed(ChatClientActor).putToMailbox(
                 "registerListener",
                 {
                     fn: (messages: ChatMessage[]) => {
@@ -63,7 +63,7 @@ export class Chat extends React.Component<
                             actorSystemName: this.actorSystem!.name,
                             localAddress: this.name
                         })!
-                            .asTypedActorRef(ChatClientActor)
+                            .typed(ChatClientActor)
                             .putToMailbox(
                                 "send",
                                 { message: this.state.myMessage },

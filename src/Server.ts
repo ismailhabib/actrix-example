@@ -4,7 +4,7 @@ import * as bodyParser from "body-parser";
 import * as socketIO from "socket.io";
 import { ActorSystem } from "./Actor/ActorSystem";
 import { ServerActor } from "./ServerActor/ServerActor";
-import { ChatActor } from "./ServerActor/ChatActor";
+import { ChatServerActor } from "./ServerActor/ChatServerActor";
 
 const app = express();
 app.use(express.static(path.join(__dirname, "build")));
@@ -34,7 +34,7 @@ console.log("Web socket server is started");
 
 const actorSystem = new ActorSystem("server");
 
-actorSystem.createActor("chatActor", ChatActor);
+actorSystem.createActor("chatActor", ChatServerActor);
 
 io.of("/chat").on("connection", socket => {
     actorSystem.listenTo(socket);
