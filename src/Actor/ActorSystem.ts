@@ -5,7 +5,8 @@ import {
     Address,
     Channel,
     Handler,
-    InterActorSystemMessage
+    InterActorSystemMessage,
+    LocalAddress
 } from "./interfaces";
 import * as uuid from "uuid";
 
@@ -70,10 +71,10 @@ export class TypedActorRef<T, U> {
         return new ActorRef(this.address, this.actorSystem);
     };
 }
-export class ActorSystem {
-    private actorRegistry: { [address: string]: Actor<any, any> };
 
-    private emitters: Channel[] = [];
+export class ActorSystem {
+    private actorSystemRegistry: { [address: string]: Channel } = {};
+    private actorRegistry: { [address: string]: Actor<any, any> };
 
     name: string;
 
@@ -87,68 +88,88 @@ export class ActorSystem {
         msg: InterActorSystemMessage,
         callback?: (message: any) => void
     ) {
-        this.emitters.forEach(emitter => emitter.emit(event, msg, callback));
+        Object.keys(this.actorSystemRegistry).forEach(key =>
+            this.actorSystemRegistry[key].emit(event, msg, callback)
+        );
+    }
+
+    register(emitter: Channel) {
+        this.listenTo(emitter);
+        this.log("Send a handshake message");
+        emitter.emit("message", { mode: "handshake", address: this.name });
+    }
+
+    unregister(actorSystemAddress: string) {
+        delete this.actorSystemRegistry[actorSystemAddress];
     }
 
     listenTo(emitter: Channel) {
-        this.emitters.push(emitter);
+        let actorSystemAddress: string | undefined = undefined;
         emitter.on("disconnect", () => {
             this.log("Removing listener");
-            const index = this.emitters.indexOf(emitter);
-            if (index > -1) {
-                this.emitters = this.emitters.splice(index, 1);
+            if (actorSystemAddress) {
+                this.unregister(actorSystemAddress);
             }
         });
         emitter.on("message", (interActorSystemMessage, cb) => {
-            this.log(
-                "Received a message from across the system boundary",
-                interActorSystemMessage
-            );
-            const actorRef = this.findActor(
-                interActorSystemMessage.targetAddress
-            );
-            this.log(
-                "The destination address is",
-                interActorSystemMessage.targetAddress
-            );
-            if (actorRef) {
-                const {
-                    mode,
-                    type,
-                    payload,
-                    senderAddress
-                } = interActorSystemMessage;
-                if (mode === "send") {
-                    this.log(
-                        `Sending the message to the appropriate actor. Type: ${
-                            type
-                        }, sender: ${senderAddress}, and payload:`,
-                        payload
-                    );
-                    actorRef.putToMailbox(type, payload, senderAddress);
-                } else {
-                    this.log(
-                        `Sending the question to the appropriate actor. Type: ${
-                            type
-                        }, sender: ${senderAddress}, and payload:`,
-                        payload
-                    );
-                    actorRef
-                        .putQuestionToMailbox(type, payload, senderAddress)
-                        .then(message => {
-                            this.log(
-                                `Received an answer, sending the answer "${
-                                    message
-                                }" for the question with type: ${
-                                    type
-                                }, sender: ${senderAddress}, and payload:`,
-                                payload
-                            );
-                            cb(message);
-                        });
-                }
+            if (interActorSystemMessage.mode === "handshake") {
+                this.log(
+                    "Received a handshake message",
+                    interActorSystemMessage
+                );
+                actorSystemAddress = interActorSystemMessage.address;
+                this.actorSystemRegistry[actorSystemAddress!] = emitter;
             } else {
-                this.log("Unable to find the recipient of the message");
+                this.log(
+                    "Received a message from across the system boundary",
+                    interActorSystemMessage
+                );
+                const actorRef = this.findActor(
+                    interActorSystemMessage.targetAddress
+                );
+                this.log(
+                    "The destination address is",
+                    interActorSystemMessage.targetAddress
+                );
+                if (actorRef) {
+                    const {
+                        mode,
+                        type,
+                        payload,
+                        senderAddress
+                    } = interActorSystemMessage;
+                    if (mode === "send") {
+                        this.log(
+                            `Sending the message to the appropriate actor. Type: ${
+                                type
+                            }, sender: ${senderAddress}, and payload:`,
+                            payload
+                        );
+                        actorRef.putToMailbox(type, payload, senderAddress);
+                    } else {
+                        this.log(
+                            `Sending the question to the appropriate actor. Type: ${
+                                type
+                            }, sender: ${senderAddress}, and payload:`,
+                            payload
+                        );
+                        actorRef
+                            .putQuestionToMailbox(type, payload, senderAddress)
+                            .then(message => {
+                                this.log(
+                                    `Received an answer, sending the answer "${
+                                        message
+                                    }" for the question with type: ${
+                                        type
+                                    }, sender: ${senderAddress}, and payload:`,
+                                    payload
+                                );
+                                cb(message);
+                            });
+                    }
+                } else {
+                    this.log("Unable to find the recipient of the message");
+                }
             }
         });
     }
@@ -218,22 +239,30 @@ export class ActorSystem {
             address = target;
         }
 
-        const actor = this.actorRegistry[address.localAddress];
-
-        if (actor) {
-            this.log("Found the actor. Sending the message");
-            actor.pushToMailbox(type as any, payload, senderAddress);
-        } else if (this.emitters) {
-            this.log(
-                "Cannot find the actor locally, will try to send it to the other side"
-            );
-            this.broadcast("message", {
-                mode: "send",
-                targetAddress: address,
-                senderAddress: senderAddress,
-                type: type,
-                payload: payload
-            });
+        if (this.isLocalAddress(address)) {
+            const actor = this.actorRegistry[address.localAddress];
+            if (actor) {
+                this.log("Found the actor. Sending the message");
+                actor.pushToMailbox(type as any, payload, senderAddress);
+            } else {
+                this.log("Unable to find the actor. It might have died");
+            }
+        } else {
+            const actorSystemEmitter = this.actorSystemRegistry[
+                address.actorSystemName
+            ];
+            if (actorSystemEmitter) {
+                this.log("Found the actor system. Sending the message");
+                actorSystemEmitter.emit("message", {
+                    mode: "send",
+                    targetAddress: address,
+                    senderAddress: senderAddress,
+                    type: type,
+                    payload: payload
+                });
+            } else {
+                this.log("Cannot find the targeted actor system");
+            }
         }
     };
 
@@ -269,39 +298,48 @@ export class ActorSystem {
             address = target;
         }
 
-        const actor = this.actorRegistry[address.localAddress];
-
-        if (actor) {
-            this.log("Found the actor. Sending the question");
-            return actor.pushQuestionToMailbox(
-                type as any,
-                payload,
-                senderAddress
-            );
-        } else if (this.emitters) {
-            this.log(
-                "Cannot find the actor locally, will try to send it to the other side"
-            );
-            const emitter = this.emitters;
-            return new Promise<any>((resolve, reject) => {
-                this.broadcast(
-                    "message",
-                    {
-                        mode: "ask",
-                        targetAddress: address,
-                        senderAddress: senderAddress,
-                        type: type,
-                        payload: payload
-                    },
-                    message => {
-                        resolve(message);
-                    }
+        if (this.isLocalAddress(address)) {
+            const actor = this.actorRegistry[address.localAddress];
+            if (actor) {
+                this.log("Found the actor. Sending the message");
+                return actor.pushQuestionToMailbox(
+                    type as any,
+                    payload,
+                    senderAddress
                 );
-            });
+            } else {
+                this.log("Unable to find the actor. It might have died");
+                return Promise.reject("Actor not found");
+            }
         } else {
-            return Promise.reject("Actor not found");
+            const actorSystemEmitter = this.actorSystemRegistry[
+                address.actorSystemName
+            ];
+            if (actorSystemEmitter) {
+                return new Promise<any>((resolve, reject) => {
+                    this.log("Found the actor system. Sending the message");
+                    actorSystemEmitter.emit(
+                        "message",
+                        {
+                            mode: "ask",
+                            targetAddress: address,
+                            senderAddress: senderAddress,
+                            type: type,
+                            payload: payload
+                        },
+                        message => resolve(message)
+                    );
+                });
+            } else {
+                this.log("Cannot find the targeted actor system");
+                return Promise.reject("ActorSystem not found");
+            }
         }
     };
+
+    isLocalAddress(address: Address) {
+        return address.actorSystemName === this.name;
+    }
 
     private log(...message: any[]) {
         console.log("ActorSystem: ", ...message);

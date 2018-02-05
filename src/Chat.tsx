@@ -19,7 +19,7 @@ export class Chat extends React.Component<
         const socket = ioClient.connect("/chat");
 
         this.actorSystem = new ActorSystem();
-        this.actorSystem.listenTo(socket);
+        this.actorSystem.register(socket);
 
         this.actorSystem.createActor(this.name, ChatClientActor);
         const actorRef = this.actorSystem.findActor({

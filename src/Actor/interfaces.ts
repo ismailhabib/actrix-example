@@ -1,8 +1,9 @@
 export type Message = {};
 
+export type ActorSystemAdress = string;
 export type LocalAddress = string;
 export type Address = {
-    actorSystemName: string;
+    actorSystemName: ActorSystemAdress;
     localAddress: LocalAddress;
 };
 
@@ -15,7 +16,7 @@ export type Handler<T, U> = {
 
 export type Channel = {
     on: (
-        event: string,
+        event: "message" | "disconnect" | "reconnect",
         fn: (
             message: InterActorSystemMessage,
             callback: (message: any) => void
@@ -28,10 +29,15 @@ export type Channel = {
     ) => void;
 };
 
-export type InterActorSystemMessage = {
-    mode: "send" | "ask";
-    type: string;
-    payload: {};
-    targetAddress: Address;
-    senderAddress: Address | null;
-};
+export type InterActorSystemMessage =
+    | {
+          mode: "send" | "ask";
+          type: string;
+          payload: {};
+          targetAddress: Address;
+          senderAddress: Address | null;
+      }
+    | {
+          mode: "handshake";
+          address: string;
+      };

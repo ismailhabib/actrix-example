@@ -37,5 +37,5 @@ const actorSystem = new ActorSystem("server");
 actorSystem.createActor("chatActor", ChatServerActor);
 
 io.of("/chat").on("connection", socket => {
-    actorSystem.listenTo(socket);
+    actorSystem.register(socket);
 });
