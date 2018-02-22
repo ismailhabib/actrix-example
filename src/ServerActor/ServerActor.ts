@@ -33,9 +33,12 @@ export class ServerActor extends Actor<
                 );
 
                 if (senderAddress) {
-                    this.sendMessage(senderAddress, "greet", {
-                        content: "thanks!"
-                    });
+                    this.compose()
+                        .classType(ClientActor)
+                        .target(senderAddress)
+                        .type("greet")
+                        .payload({ content: "thanks" })
+                        .send();
                 }
             },
             whoAreYou: (payload, senderAddress) => {
@@ -44,11 +47,12 @@ export class ServerActor extends Actor<
                 return "I am the ServerActor";
             },
             askActor: async (payload, senderAddress) => {
-                const theOtherActorName = await this.askTyped(ClientActor)(
-                    payload.address,
-                    "whoAreYou",
-                    {}
-                );
+                const theOtherActorName = await this.compose()
+                    .target(payload.address)
+                    .classType(ClientActor)
+                    .type("whoAreYou")
+                    .payload({})
+                    .ask();
                 this.log(
                     "The one who send me message earlier is ",
                     theOtherActorName

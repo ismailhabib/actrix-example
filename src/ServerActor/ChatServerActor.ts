@@ -31,11 +31,12 @@ export class ChatServerActor extends Actor<
             subscribe: (payload, senderAddress) => {
                 this.log(`Subscribe request from ${senderAddress}`);
                 this.subscribers.push(senderAddress!);
-                this.sendTypedMessage(ChatClientActor)(
-                    senderAddress!,
-                    "update",
-                    { messages: this.messages }
-                );
+                this.compose()
+                    .classType(ChatClientActor)
+                    .target(senderAddress!)
+                    .type("update")
+                    .payload({ messages: this.messages })
+                    .send();
             },
             unsubscribe: (payload, senderAddress) => {
                 this.log(
@@ -58,11 +59,12 @@ export class ChatServerActor extends Actor<
                 };
                 this.messages.push(newMessage);
                 this.subscribers.forEach(subscriber => {
-                    this.sendTypedMessage(ChatClientActor)(
-                        subscriber,
-                        "update",
-                        { messages: [newMessage] }
-                    );
+                    this.compose()
+                        .classType(ChatClientActor)
+                        .target(subscriber)
+                        .type("update")
+                        .payload({ messages: [newMessage] })
+                        .send();
                 });
             }
         });

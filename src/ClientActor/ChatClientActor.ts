@@ -20,7 +20,7 @@ export class ChatClientActor extends Actor<
     ChatClientActorPayload,
     ChatClientActorResponse
 > {
-    listener: (allMessages: ChatMessage[]) => void | null;
+    listener: ((allMessages: ChatMessage[]) => void) | undefined;
     messages: ChatMessage[] = [];
 
     constructor(name: string, address: Address, actorSystem: ActorSystem) {
@@ -31,25 +31,33 @@ export class ChatClientActor extends Actor<
             update: (payload, senderAddress) => {
                 this.log("Update is coming", payload.messages);
                 this.messages = this.messages.concat(payload.messages);
-                this.listener(this.messages);
+                if (this.listener) {
+                    this.listener(this.messages);
+                }
             },
             send: (payload, senderAddress) => {
-                this.sendTypedMessage(ChatServerActor)(
-                    { actorSystemName: "server", localAddress: "chatActor" },
-                    "post",
-                    {
-                        message: payload.message
-                    }
-                );
+                this.compose()
+                    .classType(ChatServerActor)
+                    .target({
+                        actorSystemName: "server",
+                        localAddress: "chatActor"
+                    })
+                    .type("post")
+                    .payload({ message: payload.message })
+                    .send();
             }
         });
 
         setTimeout(() => {
-            this.sendTypedMessage(ChatServerActor)(
-                { actorSystemName: "server", localAddress: "chatActor" },
-                "subscribe",
-                {}
-            );
+            this.compose()
+                .classType(ChatServerActor)
+                .target({
+                    actorSystemName: "server",
+                    localAddress: "chatActor"
+                })
+                .type("subscribe")
+                .payload({})
+                .send();
         }, 1000);
     }
 }

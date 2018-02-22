@@ -19,22 +19,6 @@ export type ActorCons<T, U> = new (
 export class ActorRef {
     constructor(public address: Address, private actorSystem: ActorSystem) {}
 
-    putToMailbox = (
-        type: string,
-        payload: any,
-        senderAddress: Address | null
-    ) => {
-        this.actorSystem.sendMessage(this, type, payload, senderAddress);
-    };
-
-    putQuestionToMailbox = (
-        type: string,
-        payload: any,
-        senderAddress: Address | null
-    ): Promise<any> => {
-        return this.actorSystem.ask(this, type, payload, senderAddress);
-    };
-
     typed = <T, U>(Class: ActorCons<T, U>) => {
         return new TypedActorRef<T, U>(Class, this.address, this.actorSystem);
     };
@@ -46,27 +30,6 @@ export class TypedActorRef<T, U> {
         public address: Address,
         private actorSystem: ActorSystem
     ) {}
-
-    putToMailbox = <K extends keyof T & keyof U>(
-        type: K,
-        payload: T[K],
-        senderAddress: Address | null
-    ) => {
-        return this.untyped().putToMailbox(type, payload, senderAddress);
-    };
-
-    putQuestionToMailbox = <K extends keyof T & keyof U>(
-        type: K,
-        payload: T[K],
-        senderAddress: Address | null
-    ): Promise<U[K]> => {
-        return this.untyped().putQuestionToMailbox(
-            type,
-            payload,
-            senderAddress
-        );
-    };
-
     untyped = () => {
         return new ActorRef(this.address, this.actorSystem);
     };
@@ -145,7 +108,12 @@ export class ActorSystem {
                             }, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        actorRef.putToMailbox(type, payload, senderAddress);
+                        this.compose()
+                            .type(type)
+                            .target(actorRef)
+                            .payload(payload)
+                            .sender(senderAddress!)
+                            .send();
                     } else {
                         this.log(
                             `Sending the question to the appropriate actor. Type: ${
@@ -153,8 +121,12 @@ export class ActorSystem {
                             }, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        actorRef
-                            .putQuestionToMailbox(type, payload, senderAddress)
+                        this.compose()
+                            .type(type)
+                            .target(actorRef)
+                            .payload(payload)
+                            .sender(senderAddress!)
+                            .ask()
                             .then(message => {
                                 this.log(
                                     `Received an answer, sending the answer "${
@@ -205,16 +177,8 @@ export class ActorSystem {
         }
     };
 
-    sendTypedMessage = <T, U, K extends keyof T & keyof U>(
-        Class: ActorCons<T, U>
-    ) => (
-        target: ActorRef | TypedActorRef<T, U> | Address,
-        type: K,
-        payload: T[K],
-        senderAddress: Address | null
-    ) => {
-        const tgt = target instanceof TypedActorRef ? target.untyped() : target;
-        this.sendMessage(tgt, type, payload, senderAddress);
+    compose = () => {
+        return new MessageComposer<any, any, any, any, any>(this);
     };
 
     sendMessage = (
@@ -222,7 +186,7 @@ export class ActorSystem {
         type: string,
         payload: any,
         senderAddress: Address | null
-    ) => {
+    ): Promise<any> => {
         this.log(
             `Received a request to send a message with type: ${type}`,
             "Target",
@@ -243,70 +207,7 @@ export class ActorSystem {
             const actor = this.actorRegistry[address.localAddress];
             if (actor) {
                 this.log("Found the actor. Sending the message");
-                actor.pushToMailbox(type as any, payload, senderAddress);
-            } else {
-                this.log("Unable to find the actor. It might have died");
-            }
-        } else {
-            const actorSystemEmitter = this.actorSystemRegistry[
-                address.actorSystemName
-            ];
-            if (actorSystemEmitter) {
-                this.log("Found the actor system. Sending the message");
-                actorSystemEmitter.emit("message", {
-                    mode: "send",
-                    targetAddress: address,
-                    senderAddress: senderAddress,
-                    type: type,
-                    payload: payload
-                });
-            } else {
-                this.log("Cannot find the targeted actor system");
-            }
-        }
-    };
-
-    askTyped = <T, U, K extends keyof T & keyof U>(Class: ActorCons<T, U>) => (
-        target: ActorRef | TypedActorRef<T, U> | Address,
-        type: K,
-        payload: T[K],
-        senderAddress: Address | null
-    ): Promise<U[K]> => {
-        const tgt = target instanceof TypedActorRef ? target.untyped() : target;
-        return this.ask(tgt, type, payload, senderAddress);
-    };
-
-    ask = (
-        target: ActorRef | Address,
-        type: string,
-        payload: any,
-        senderAddress: Address | null
-    ): Promise<any> => {
-        this.log(
-            `Received a request to send a question with type: ${type}`,
-            "Target",
-            target,
-            "Sender",
-            senderAddress,
-            "Payload",
-            payload
-        );
-        let address: Address;
-        if (target instanceof ActorRef) {
-            address = target.address;
-        } else {
-            address = target;
-        }
-
-        if (this.isLocalAddress(address)) {
-            const actor = this.actorRegistry[address.localAddress];
-            if (actor) {
-                this.log("Found the actor. Sending the message");
-                return actor.pushQuestionToMailbox(
-                    type as any,
-                    payload,
-                    senderAddress
-                );
+                return actor.pushToMailbox(type as any, payload, senderAddress);
             } else {
                 this.log("Unable to find the actor. It might have died");
                 return Promise.reject("Actor not found");
@@ -343,5 +244,100 @@ export class ActorSystem {
 
     private log(...message: any[]) {
         console.log("ActorSystem: ", ...message);
+    }
+}
+
+export class MessageComposer<A, B, C extends string, D, E> {
+    constructor(private actorSystem: ActorSystem) {}
+    private _classType: ActorCons<A, B> | undefined;
+    private _senderAddress: Address | null = null;
+    private _targetAddress:
+        | Address
+        | ActorRef
+        | TypedActorRef<A, B>
+        | undefined;
+    private _payload: D | undefined;
+    private _type: C | undefined;
+    sender(senderAddress: Address): MessageComposer<A, B, C, D, E> {
+        this._senderAddress = senderAddress;
+        return this;
+    }
+
+    target(target: ActorRef | Address): MessageComposer<A, B, C, D, E> {
+        const newInstance = new MessageComposer<A, B, C, D, E>(
+            this.actorSystem
+        );
+        newInstance.copyValuesFrom(this);
+        newInstance._targetAddress = target;
+
+        return newInstance;
+    }
+
+    targetWithType<V, W>(
+        target: TypedActorRef<V, W>
+    ): MessageComposer<V, W, C, D, E> {
+        const newInstance = new MessageComposer<V, W, C, D, E>(
+            this.actorSystem
+        );
+        newInstance.copyValuesFrom(this);
+        newInstance._targetAddress = target;
+
+        return newInstance;
+    }
+
+    classType<W, X, Y extends keyof W & keyof X>(
+        classType: ActorCons<W, X>
+    ): MessageComposer<W, X, Y, any, any> {
+        const newInstance = new MessageComposer<W, X, Y, any, any>(
+            this.actorSystem
+        );
+        newInstance.copyValuesFrom(this);
+        newInstance._classType = classType;
+        return newInstance;
+    }
+
+    type<W extends keyof A & keyof B>(
+        type: W
+    ): MessageComposer<A, B, W, A[W], B[W]> {
+        const newInstance = new MessageComposer<A, B, W, A[W], B[W]>(
+            this.actorSystem
+        );
+        newInstance.copyValuesFrom(this);
+        newInstance._type = type;
+        return newInstance;
+    }
+
+    payload(payload: D) {
+        this._payload = payload;
+        return this;
+    }
+
+    ask(): Promise<E> {
+        if (this._targetAddress && this._payload && this._type) {
+            const target =
+                this._targetAddress instanceof TypedActorRef
+                    ? this._targetAddress.untyped()
+                    : this._targetAddress;
+            return this.actorSystem.sendMessage(
+                target,
+                this._type,
+                this._payload,
+                this._senderAddress
+            );
+        } else {
+            return Promise.reject("Insufficient input");
+        }
+    }
+
+    send() {
+        this.ask();
+    }
+
+    copyValuesFrom(source: MessageComposer<any, any, any, any, any>) {
+        this._classType = source._classType;
+        this._payload = source._payload;
+        this._senderAddress = source._senderAddress;
+        this._targetAddress = source._targetAddress;
+        this._type = source._type;
     }
 }

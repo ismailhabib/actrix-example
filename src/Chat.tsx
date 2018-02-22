@@ -27,16 +27,18 @@ export class Chat extends React.Component<
             localAddress: this.name
         });
         if (actorRef) {
-            actorRef.typed(ChatClientActor).putToMailbox(
-                "registerListener",
-                {
+            this.actorSystem
+                .compose()
+                .classType(ChatClientActor)
+                .type("registerListener")
+                .payload({
                     fn: (messages: ChatMessage[]) => {
                         console.log("Updating component state");
                         this.setState({ messages: messages });
                     }
-                },
-                null
-            );
+                })
+                .target(actorRef)
+                .send();
         }
     }
     render() {
@@ -56,19 +58,21 @@ export class Chat extends React.Component<
                     onChange={event => {
                         this.setState({ myMessage: event.currentTarget.value });
                     }}
+                    value={this.state.myMessage}
                 />
                 <button
                     onClick={() => {
-                        this.actorSystem!.findActor({
-                            actorSystemName: this.actorSystem!.name,
-                            localAddress: this.name
-                        })!
-                            .typed(ChatClientActor)
-                            .putToMailbox(
-                                "send",
-                                { message: this.state.myMessage },
-                                null
-                            );
+                        this.actorSystem!
+                            .compose()
+                            .classType(ChatClientActor)
+                            .target({
+                                actorSystemName: this.actorSystem!.name,
+                                localAddress: this.name
+                            })
+                            .type("send")
+                            .payload({ message: this.state.myMessage })
+                            .send();
+                        this.setState({ myMessage: "" });
                     }}
                 >
                     Post

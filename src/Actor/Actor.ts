@@ -1,4 +1,10 @@
-import { ActorSystem, ActorRef, ActorCons, TypedActorRef } from "./ActorSystem";
+import {
+    ActorSystem,
+    ActorRef,
+    ActorCons,
+    TypedActorRef,
+    MessageComposer
+} from "./ActorSystem";
 import { Address, Handler } from "./interfaces";
 
 type MailBoxMessage<T, U, V> = {
@@ -27,39 +33,11 @@ export abstract class Actor<T, U> {
         this.timerId = null;
     }
 
-    pushToMailbox = <K extends keyof T & keyof U>(
-        type: K,
-        payload: T[K],
-        senderAddress: Address | null
-    ) => {
-        this.mailBox.push({
-            type,
-            payload,
-            senderAddress
-        });
-        this.scheduleNextTick();
+    protected compose = () => {
+        return this.actorSystem.compose().sender(this.address);
     };
 
-    sendTypedMessage = <V, W, X extends keyof V & keyof W>(
-        Class: ActorCons<V, W>
-    ) => (
-        target: TypedActorRef<V, W> | ActorRef | Address,
-        type: X,
-        payload: V[X]
-    ) => {
-        this.actorSystem.sendTypedMessage(Class)(
-            target,
-            type,
-            payload,
-            this.address
-        );
-    };
-
-    sendMessage = (target: ActorRef | Address, type: string, payload: any) => {
-        this.actorSystem.sendMessage(target, type, payload, this.address);
-    };
-
-    sendToSelf = <K extends keyof T & keyof U>(
+    protected sendToSelf = <K extends keyof T & keyof U>(
         type: K,
         payload: T[K],
         delay?: number
@@ -69,33 +47,12 @@ export abstract class Actor<T, U> {
         }, delay || 0);
     };
 
-    askTyped = <V, W, K extends keyof V & keyof W>(Class: ActorCons<V, W>) => (
-        target: ActorRef | TypedActorRef<V, W> | Address,
-        type: K,
-        payload: V[K]
-    ): Promise<W[K]> => {
-        return this.actorSystem.askTyped(Class)(
-            target,
-            type,
-            payload,
-            this.address
-        );
-    };
-
-    ask = (
-        target: ActorRef | Address,
-        type: string,
-        payload: any
-    ): Promise<any> => {
-        return this.actorSystem.ask(target, type, payload, this.address);
-    };
-
-    pushQuestionToMailbox = <K extends keyof T & keyof U>(
+    pushToMailbox = <K extends keyof T & keyof U>(
         type: K,
         payload: T[K],
         senderAddress: Address | null
     ): Promise<U[K]> => {
-        return new Promise((resolve, reject) => {
+        return new Promise<U[K]>((resolve, reject) => {
             this.mailBox.push({
                 type,
                 payload,
@@ -104,7 +61,7 @@ export abstract class Actor<T, U> {
                     if (error) {
                         reject(error);
                     } else {
-                        resolve(result);
+                        resolve(result as U[K]);
                     }
                 }
             });
