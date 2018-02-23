@@ -6,13 +6,23 @@ import { ChatClientActor } from "./ClientActor/ChatClientActor";
 
 export class Chat extends React.Component<
     {},
-    { messages: ChatMessage[]; myMessage: string }
+    {
+        messages: ChatMessage[];
+        myMessage: string;
+        userName: string;
+        isConnected: boolean;
+    }
 > {
     actorSystem: ActorSystem | null = null;
     name = "ChatClient" + Math.random();
     constructor(props: {}) {
         super(props);
-        this.state = { messages: [], myMessage: "" };
+        this.state = {
+            messages: [],
+            myMessage: "",
+            userName: "MyName",
+            isConnected: false
+        };
     }
 
     componentDidMount() {
@@ -30,7 +40,7 @@ export class Chat extends React.Component<
             const typedActorRef = actorRef.classType(ChatClientActor);
             this.actorSystem
                 .compose()
-                .target(actorRef)
+                .target(typedActorRef)
                 .type("registerListener")
                 .payload({
                     fn: (messages: ChatMessage[]) => {
@@ -44,6 +54,34 @@ export class Chat extends React.Component<
     render() {
         return (
             <div>
+                <input
+                    onChange={event => {
+                        this.setState({ userName: event.currentTarget.value });
+                    }}
+                    value={this.state.userName}
+                    readOnly={this.state.isConnected}
+                />
+                <button
+                    onClick={() => {
+                        this.actorSystem!
+                            .compose()
+                            .target(
+                                this.actorSystem!
+                                    .ref({
+                                        actorSystemName: this.actorSystem!.name,
+                                        localAddress: this.name
+                                    })
+                                    .classType(ChatClientActor)
+                            )
+                            .type("connect")
+                            .payload({ userName: this.state.userName })
+                            .send();
+                        this.setState({ isConnected: true });
+                    }}
+                    disabled={this.state.isConnected}
+                >
+                    Connect
+                </button>
                 <textarea
                     onChange={event => {
                         this.setState({ myMessage: event.currentTarget.value });
@@ -67,12 +105,13 @@ export class Chat extends React.Component<
                             .send();
                         this.setState({ myMessage: "" });
                     }}
+                    disabled={!this.state.isConnected}
                 >
                     Post
                 </button>
                 {this.state.messages.map(message => (
                     <div>
-                        <b>{message.user.localAddress}</b>:{message.message}
+                        <b>{message.userName}</b>:{message.message}
                     </div>
                 ))}
             </div>

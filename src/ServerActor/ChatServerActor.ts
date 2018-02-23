@@ -2,26 +2,32 @@ import { Actor } from "../Actor/Actor";
 import { Address } from "../Actor/interfaces";
 import { ActorSystem } from "../Actor/ActorSystem";
 import { ChatClientActor } from "../ClientActor/ChatClientActor";
+import deepEqual = require("deep-equal");
 
 export type ChatActorPayload = {
-    subscribe: {};
-    unsubscribe: { address: Address };
+    subscribe: { userName: string };
+    unsubscribe: { address: Address; name: string };
     post: { message: string };
 };
 
 export type ChatMessage = {
     message: string;
-    user: Address;
+    userAddress: Address;
+    userName: string;
 };
+
 export class ChatServerActor extends Actor<ChatActorPayload, {}> {
-    subscribers: Address[] = [];
+    subscribers: { userName: string; address: Address }[] = [];
     messages: ChatMessage[] = [];
 
     constructor(name: string, address: Address, actorSystem: ActorSystem) {
         super(name, address, actorSystem, {
             subscribe: (payload, senderAddress) => {
                 this.log(`Subscribe request from ${senderAddress}`);
-                this.subscribers.push(senderAddress!);
+                this.subscribers.push({
+                    userName: payload.userName,
+                    address: senderAddress!
+                });
                 this.compose()
                     .target(
                         actorSystem
@@ -38,7 +44,9 @@ export class ChatServerActor extends Actor<ChatActorPayload, {}> {
                         payload.address
                     }`
                 );
-                const index = this.subscribers.indexOf(payload.address);
+                const index = this.subscribers.findIndex(subscriber =>
+                    deepEqual(subscriber.address, payload.address)
+                );
                 if (index > -1) {
                     this.subscribers = this.subscribers.splice(index, 1);
                 }
@@ -48,15 +56,18 @@ export class ChatServerActor extends Actor<ChatActorPayload, {}> {
                     `New message from ${senderAddress}: ${payload.message}`
                 );
                 const newMessage: ChatMessage = {
-                    user: senderAddress!,
-                    message: payload.message
+                    userAddress: senderAddress!,
+                    message: payload.message,
+                    userName: this.subscribers.find(subscriber =>
+                        deepEqual(subscriber.address, senderAddress)
+                    )!.userName
                 };
                 this.messages.push(newMessage);
                 this.subscribers.forEach(subscriber => {
                     this.compose()
                         .target(
                             actorSystem
-                                .ref(subscriber)
+                                .ref(subscriber.address)
                                 .classType(ChatClientActor)
                         )
                         .type("update")

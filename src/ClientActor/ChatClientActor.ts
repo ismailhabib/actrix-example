@@ -8,6 +8,7 @@ export type ChatClientActorPayload = {
     registerListener: { fn: (allMessages: ChatMessage[]) => void };
     send: { message: string };
     update: { messages: ChatMessage[] };
+    connect: { userName: string };
 };
 
 export type ChatClientActorResponse = {
@@ -42,21 +43,21 @@ export class ChatClientActor extends Actor<ChatClientActorPayload, {}> {
                     .type("post")
                     .payload({ message: payload.message })
                     .send();
+            },
+            connect: (payload, senderAddress) => {
+                this.compose()
+                    .target(
+                        actorSystem
+                            .ref({
+                                actorSystemName: "server",
+                                localAddress: "chatActor"
+                            })
+                            .classType(ChatServerActor)
+                    )
+                    .type("subscribe")
+                    .payload(payload)
+                    .send();
             }
         });
-
-        setTimeout(() => {
-            this.compose()
-                .classType(ChatServerActor)
-                .target(
-                    actorSystem.ref({
-                        actorSystemName: "server",
-                        localAddress: "chatActor"
-                    })
-                )
-                .type("subscribe")
-                .payload({})
-                .send();
-        }, 1000);
     }
 }
