@@ -27,9 +27,10 @@ export class Chat extends React.Component<
             localAddress: this.name
         });
         if (actorRef) {
+            const typedActorRef = actorRef.classType(ChatClientActor);
             this.actorSystem
                 .compose()
-                .classType(ChatClientActor)
+                .target(actorRef)
                 .type("registerListener")
                 .payload({
                     fn: (messages: ChatMessage[]) => {
@@ -37,23 +38,12 @@ export class Chat extends React.Component<
                         this.setState({ messages: messages });
                     }
                 })
-                .target(actorRef)
                 .send();
         }
     }
     render() {
-        console.log(this.state.messages);
-        const messages = this.state.messages.reduce(
-            (prev, cur) =>
-                `${prev}\n${cur.user.actorSystemName}/${
-                    cur.user.localAddress
-                }:${cur.message}`,
-            ""
-        );
-        console.log("Combine messages", messages);
         return (
             <div>
-                <textarea readOnly={true} value={messages} />
                 <textarea
                     onChange={event => {
                         this.setState({ myMessage: event.currentTarget.value });
@@ -64,11 +54,14 @@ export class Chat extends React.Component<
                     onClick={() => {
                         this.actorSystem!
                             .compose()
-                            .classType(ChatClientActor)
-                            .target({
-                                actorSystemName: this.actorSystem!.name,
-                                localAddress: this.name
-                            })
+                            .target(
+                                this.actorSystem!
+                                    .ref({
+                                        actorSystemName: this.actorSystem!.name,
+                                        localAddress: this.name
+                                    })
+                                    .classType(ChatClientActor)
+                            )
                             .type("send")
                             .payload({ message: this.state.myMessage })
                             .send();
@@ -77,6 +70,11 @@ export class Chat extends React.Component<
                 >
                     Post
                 </button>
+                {this.state.messages.map(message => (
+                    <div>
+                        <b>{message.user.localAddress}</b>:{message.message}
+                    </div>
+                ))}
             </div>
         );
     }

@@ -23,8 +23,11 @@ export class ChatServerActor extends Actor<ChatActorPayload, {}> {
                 this.log(`Subscribe request from ${senderAddress}`);
                 this.subscribers.push(senderAddress!);
                 this.compose()
-                    .classType(ChatClientActor)
-                    .target(senderAddress!)
+                    .target(
+                        actorSystem
+                            .ref(senderAddress!)
+                            .classType(ChatClientActor)
+                    )
                     .type("update")
                     .payload({ messages: this.messages })
                     .send();
@@ -51,8 +54,11 @@ export class ChatServerActor extends Actor<ChatActorPayload, {}> {
                 this.messages.push(newMessage);
                 this.subscribers.forEach(subscriber => {
                     this.compose()
-                        .classType(ChatClientActor)
-                        .target(subscriber)
+                        .target(
+                            actorSystem
+                                .ref(subscriber)
+                                .classType(ChatClientActor)
+                        )
                         .type("update")
                         .payload({ messages: [newMessage] })
                         .send();

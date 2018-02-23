@@ -1,6 +1,5 @@
 import {
     ActorSystem,
-    ActorRef,
     ActorCons,
     TypedActorRef,
     MessageComposer

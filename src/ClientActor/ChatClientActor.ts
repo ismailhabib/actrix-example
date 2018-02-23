@@ -10,6 +10,10 @@ export type ChatClientActorPayload = {
     update: { messages: ChatMessage[] };
 };
 
+export type ChatClientActorResponse = {
+    update: string;
+};
+
 export class ChatClientActor extends Actor<ChatClientActorPayload, {}> {
     listener: ((allMessages: ChatMessage[]) => void) | undefined;
     messages: ChatMessage[] = [];
@@ -29,10 +33,12 @@ export class ChatClientActor extends Actor<ChatClientActorPayload, {}> {
             send: (payload, senderAddress) => {
                 this.compose()
                     .classType(ChatServerActor)
-                    .target({
-                        actorSystemName: "server",
-                        localAddress: "chatActor"
-                    })
+                    .target(
+                        actorSystem.ref({
+                            actorSystemName: "server",
+                            localAddress: "chatActor"
+                        })
+                    )
                     .type("post")
                     .payload({ message: payload.message })
                     .send();
@@ -42,10 +48,12 @@ export class ChatClientActor extends Actor<ChatClientActorPayload, {}> {
         setTimeout(() => {
             this.compose()
                 .classType(ChatServerActor)
-                .target({
-                    actorSystemName: "server",
-                    localAddress: "chatActor"
-                })
+                .target(
+                    actorSystem.ref({
+                        actorSystemName: "server",
+                        localAddress: "chatActor"
+                    })
+                )
                 .type("subscribe")
                 .payload({})
                 .send();
