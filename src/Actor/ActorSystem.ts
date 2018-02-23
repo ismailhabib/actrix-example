@@ -172,7 +172,7 @@ export class ActorSystem {
     };
 
     compose = () => {
-        return new MessageComposer<any, any, any, any, any>(this);
+        return new MessageComposer<any, any, any>(this);
     };
 
     sendMessage = (
@@ -244,31 +244,26 @@ export class ActorSystem {
 export class MessageComposer<
     A,
     B,
-    C extends keyof A & keyof CombinedResponse<A, B>,
-    D extends A[C],
-    E extends CombinedResponse<A, B>[C]
+    C extends keyof A & keyof CombinedResponse<A, B>
+    // ,
+    // D extends A[C],
+    // E extends CombinedResponse<A, B>[C]
 > {
     constructor(private actorSystem: ActorSystem) {}
     private _classType: ActorCons<A, B> | undefined;
     private _senderAddress: Address | null = null;
     private _targetAddress: Address | TypedActorRef<A, B> | undefined;
-    private _payload: D | undefined;
+    private _payload: A[C] | undefined;
     private _type: C | undefined;
-    sender(senderAddress: Address): MessageComposer<A, B, C, D, E> {
+    sender(senderAddress: Address): MessageComposer<A, B, C> {
         this._senderAddress = senderAddress;
         return this;
     }
 
     target<V, W, X extends keyof V & keyof CombinedResponse<V, W>>(
         target: TypedActorRef<V, W>
-    ): MessageComposer<V, W, X, V[X], CombinedResponse<V, W>[X]> {
-        const newInstance = new MessageComposer<
-            V,
-            W,
-            X,
-            V[X],
-            CombinedResponse<V, W>[X]
-        >(this.actorSystem);
+    ): MessageComposer<V, W, X> {
+        const newInstance = new MessageComposer<V, W, X>(this.actorSystem);
         newInstance.copyValuesFrom(this);
         newInstance._targetAddress = target;
 
@@ -277,38 +272,28 @@ export class MessageComposer<
 
     classType<W, X, Y extends keyof W & keyof CombinedResponse<W, X>>(
         classType: ActorCons<W, X>
-    ): MessageComposer<W, X, Y, W[Y], CombinedResponse<W, X>[Y]> {
-        const newInstance = new MessageComposer<
-            W,
-            X,
-            Y,
-            W[Y],
-            CombinedResponse<W, X>[Y]
-        >(this.actorSystem);
+    ): MessageComposer<W, X, Y> {
+        const newInstance = new MessageComposer<W, X, Y>(this.actorSystem);
         newInstance.copyValuesFrom(this);
         newInstance._classType = classType;
         return newInstance;
     }
 
-    type(type: C): MessageComposer<A, B, C, A[C], CombinedResponse<A, B>[C]> {
-        const newInstance = new MessageComposer<
-            A,
-            B,
-            C,
-            A[C],
-            CombinedResponse<A, B>[C]
-        >(this.actorSystem);
+    type<V extends keyof A & keyof CombinedResponse<A, B>>(
+        type: V
+    ): MessageComposer<A, B, V> {
+        const newInstance = new MessageComposer<A, B, V>(this.actorSystem);
         newInstance.copyValuesFrom(this);
         newInstance._type = type;
         return newInstance;
     }
 
-    payload(payload: D) {
+    payload(payload: A[C]) {
         this._payload = payload;
         return this;
     }
 
-    ask(): Promise<E> {
+    ask(): Promise<CombinedResponse<A, B>[C]> {
         if (this._targetAddress && this._payload && this._type) {
             return this.actorSystem.sendMessage(
                 this._targetAddress,
@@ -325,7 +310,7 @@ export class MessageComposer<
         this.ask();
     }
 
-    copyValuesFrom(source: MessageComposer<any, any, any, any, any>) {
+    copyValuesFrom(source: MessageComposer<any, any, any>) {
         this._classType = source._classType;
         this._payload = source._payload;
         this._senderAddress = source._senderAddress;
