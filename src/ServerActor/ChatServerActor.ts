@@ -9,20 +9,11 @@ export type ChatActorPayload = {
     post: { message: string };
 };
 
-export type ChatActorResponse = {
-    subscribe: void;
-    unsubscribe: void;
-    post: void;
-};
-
 export type ChatMessage = {
     message: string;
     user: Address;
 };
-export class ChatServerActor extends Actor<
-    ChatActorPayload,
-    ChatActorResponse
-> {
+export class ChatServerActor extends Actor<ChatActorPayload, {}> {
     subscribers: Address[] = [];
     messages: ChatMessage[] = [];
 

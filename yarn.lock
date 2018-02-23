@@ -5703,7 +5703,11 @@ type-is@~1.6.15:
     media-typer "0.3.0"
     mime-types "~2.1.15"
 
-typescript@~2.5.0, typescript@~2.5.3:
+typescript@^2.8.0-dev.20180223:
+  version "2.8.0-dev.20180223"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.8.0-dev.20180223.tgz#bd069be8684dd1ab76c183ae8ef4ee49d7019492"
+
+typescript@~2.5.3:
   version "2.5.3"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.5.3.tgz#df3dcdc38f3beb800d4bc322646b04a3f6ca7f0d"
 

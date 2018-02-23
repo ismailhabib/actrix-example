@@ -6,7 +6,8 @@ import {
     Channel,
     Handler,
     InterActorSystemMessage,
-    LocalAddress
+    LocalAddress,
+    CombinedResponse
 } from "./interfaces";
 import * as uuid from "uuid";
 
@@ -296,12 +297,16 @@ export class MessageComposer<A, B, C extends string, D, E> {
         return newInstance;
     }
 
-    type<W extends keyof A & keyof B>(
+    type<W extends keyof A & keyof CombinedResponse<A, B>>(
         type: W
-    ): MessageComposer<A, B, W, A[W], B[W]> {
-        const newInstance = new MessageComposer<A, B, W, A[W], B[W]>(
-            this.actorSystem
-        );
+    ): MessageComposer<A, B, W, A[W], CombinedResponse<A, B>[W]> {
+        const newInstance = new MessageComposer<
+            A,
+            B,
+            W,
+            A[W],
+            CombinedResponse<A, B>[W]
+        >(this.actorSystem);
         newInstance.copyValuesFrom(this);
         newInstance._type = type;
         return newInstance;

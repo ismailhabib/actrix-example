@@ -10,16 +10,7 @@ export type ChatClientActorPayload = {
     update: { messages: ChatMessage[] };
 };
 
-export type ChatClientActorResponse = {
-    registerListener: void;
-    send: void;
-    update: void;
-};
-
-export class ChatClientActor extends Actor<
-    ChatClientActorPayload,
-    ChatClientActorResponse
-> {
+export class ChatClientActor extends Actor<ChatClientActorPayload, {}> {
     listener: ((allMessages: ChatMessage[]) => void) | undefined;
     messages: ChatMessage[] = [];
 

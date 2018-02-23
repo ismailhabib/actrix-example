@@ -10,8 +10,6 @@ export type ClientActorPayload = {
 };
 
 export type ClientActorResponse = {
-    greet: void;
-    registerCallback: void;
     whoAreYou: string;
 };
 

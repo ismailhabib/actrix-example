@@ -9,9 +9,7 @@ export type ServerActorPayload = {
     askActor: { address: Address };
 };
 export type ServerActorResponse = {
-    greet: void;
     whoAreYou: string;
-    askActor: void;
 };
 
 export class ServerActor extends Actor<

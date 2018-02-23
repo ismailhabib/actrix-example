@@ -5,7 +5,7 @@ import {
     TypedActorRef,
     MessageComposer
 } from "./ActorSystem";
-import { Address, Handler } from "./interfaces";
+import { Address, Handler, CombinedResponse } from "./interfaces";
 
 type MailBoxMessage<T, U, V> = {
     type: T;
@@ -17,9 +17,9 @@ type MailBoxMessage<T, U, V> = {
 export abstract class Actor<T, U> {
     protected name: string;
     private mailBox: MailBoxMessage<
-        keyof T & keyof U,
-        T[keyof T & keyof U],
-        U[keyof U]
+        keyof T & keyof CombinedResponse<T, U>,
+        T[keyof T & keyof CombinedResponse<T, U>],
+        CombinedResponse<T, U>[keyof CombinedResponse<T, U>]
     >[] = [];
     private timerId: number | null;
 
@@ -27,7 +27,7 @@ export abstract class Actor<T, U> {
         name: string,
         private address: Address,
         private actorSystem: ActorSystem,
-        private handlers: Handler<T, U>
+        private handlers: Handler<T, CombinedResponse<T, U>>
     ) {
         this.name = name;
         this.timerId = null;
@@ -37,7 +37,7 @@ export abstract class Actor<T, U> {
         return this.actorSystem.compose().sender(this.address);
     };
 
-    protected sendToSelf = <K extends keyof T & keyof U>(
+    protected sendToSelf = <K extends keyof T & keyof CombinedResponse<T, U>>(
         type: K,
         payload: T[K],
         delay?: number
@@ -47,12 +47,12 @@ export abstract class Actor<T, U> {
         }, delay || 0);
     };
 
-    pushToMailbox = <K extends keyof T & keyof U>(
+    pushToMailbox = <K extends keyof T & keyof CombinedResponse<T, U>>(
         type: K,
         payload: T[K],
         senderAddress: Address | null
-    ): Promise<U[K]> => {
-        return new Promise<U[K]>((resolve, reject) => {
+    ): Promise<CombinedResponse<T, U>[K]> => {
+        return new Promise<CombinedResponse<T, U>[K]>((resolve, reject) => {
             this.mailBox.push({
                 type,
                 payload,
@@ -61,7 +61,7 @@ export abstract class Actor<T, U> {
                     if (error) {
                         reject(error);
                     } else {
-                        resolve(result as U[K]);
+                        resolve(result as CombinedResponse<T, U>[K]);
                     }
                 }
             });
@@ -77,11 +77,13 @@ export abstract class Actor<T, U> {
         console.log(`${this.name}:`, ...message);
     }
 
-    private async handleMessage<K extends keyof T & keyof U>(
+    private async handleMessage<
+        K extends keyof T & keyof CombinedResponse<T, U>
+    >(
         type: K,
         payload: T[K],
         senderAddress: Address | null
-    ): Promise<U[K]> {
+    ): Promise<CombinedResponse<T, U>[K]> {
         return this.handlers[type](payload, senderAddress);
     }
 
