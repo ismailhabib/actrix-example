@@ -7,12 +7,7 @@ export type Address = {
     localAddress: LocalAddress;
 };
 
-export type Handler<T, U> = {
-    [P in (keyof T & keyof U)]: (
-        payload: T[P],
-        senderAddress: Address | null
-    ) => U[P]
-};
+export type Handler<T> = { [P in keyof T]: T[P] };
 
 export type Channel = {
     on: (
@@ -41,6 +36,3 @@ export type InterActorSystemMessage =
           mode: "handshake";
           address: string;
       };
-
-export type DefaultResponse<T, U> = { [P in Exclude<keyof T, keyof U>]: void };
-export type CombinedResponse<T, U> = DefaultResponse<T, U> & U;

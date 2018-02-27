@@ -1,57 +1,57 @@
-import {
-    ActorSystem,
-    ActorCons,
-    TypedActorRef,
-    MessageComposer
-} from "./ActorSystem";
-import { Address, Handler, CombinedResponse } from "./interfaces";
+import { ActorSystem, ActorCons, TypedActorRef } from "./ActorSystem";
+import { Address, Handler } from "./interfaces";
 
-type MailBoxMessage<T, U, V> = {
+type MailBoxMessage<T> = {
     type: T;
-    payload: U;
+    payload: any;
     senderAddress: Address | null;
-    callback?: (error?: any, result?: V) => void;
+    callback?: (error?: any, result?: any) => void;
 };
 
-export abstract class Actor<T, U> {
+export abstract class Actor<T> {
     protected name: string;
-    private mailBox: MailBoxMessage<
-        keyof T & keyof CombinedResponse<T, U>,
-        T[keyof T & keyof CombinedResponse<T, U>],
-        CombinedResponse<T, U>[keyof CombinedResponse<T, U>]
-    >[] = [];
+    private mailBox: MailBoxMessage<keyof T>[] = [];
     private timerId: number | null;
-
+    protected currentContext: {
+        senderAddress: Address | null;
+        senderRef: TypedActorRef<any> | null;
+    } = {
+        senderAddress: null,
+        senderRef: null
+    };
     constructor(
         name: string,
         private address: Address,
         private actorSystem: ActorSystem,
-        private handlers: Handler<T, CombinedResponse<T, U>>
+        private handlers: Handler<T>
     ) {
         this.name = name;
         this.timerId = null;
     }
 
-    protected compose = () => {
-        return this.actorSystem.compose().sender(this.address);
-    };
+    at<A>(targetRef: TypedActorRef<A> | Address) {
+        return new Proxy(
+            {},
+            {
+                get: (target, prop, receiver) => {
+                    return payload =>
+                        this.actorSystem.sendMessage(
+                            targetRef,
+                            prop as any,
+                            payload,
+                            this.address
+                        );
+                }
+            }
+        ) as Handler<A>;
+    }
 
-    protected sendToSelf = <K extends keyof T & keyof CombinedResponse<T, U>>(
+    pushToMailbox = <K extends keyof T>(
         type: K,
-        payload: T[K],
-        delay?: number
-    ) => {
-        setTimeout(() => {
-            this.pushToMailbox(type, payload, this.address);
-        }, delay || 0);
-    };
-
-    pushToMailbox = <K extends keyof T & keyof CombinedResponse<T, U>>(
-        type: K,
-        payload: T[K],
+        payload: any,
         senderAddress: Address | null
-    ): Promise<CombinedResponse<T, U>[K]> => {
-        return new Promise<CombinedResponse<T, U>[K]>((resolve, reject) => {
+    ): Promise<any> => {
+        return new Promise<any>((resolve, reject) => {
             this.mailBox.push({
                 type,
                 payload,
@@ -60,7 +60,7 @@ export abstract class Actor<T, U> {
                     if (error) {
                         reject(error);
                     } else {
-                        resolve(result as CombinedResponse<T, U>[K]);
+                        resolve(result);
                     }
                 }
             });
@@ -68,6 +68,7 @@ export abstract class Actor<T, U> {
         });
     };
 
+    // TODO: 'ref' vs 'at' will confuse people
     ref = (address: Address) => {
         return this.actorSystem.ref(address);
     };
@@ -76,14 +77,11 @@ export abstract class Actor<T, U> {
         console.log(`${this.name}:`, ...message);
     }
 
-    private async handleMessage<
-        K extends keyof T & keyof CombinedResponse<T, U>
-    >(
+    private async handleMessage<K extends keyof T>(
         type: K,
-        payload: T[K],
-        senderAddress: Address | null
-    ): Promise<CombinedResponse<T, U>[K]> {
-        return this.handlers[type](payload, senderAddress);
+        payload: any
+    ): Promise<any> {
+        return (this.handlers[type] as any)(payload);
     }
 
     private scheduleNextTick = () => {
@@ -103,7 +101,12 @@ export abstract class Actor<T, U> {
         let result: any;
         try {
             const { type, payload, senderAddress } = mail;
-            result = await this.handleMessage(type, payload, senderAddress);
+
+            this.currentContext = {
+                senderAddress,
+                senderRef: senderAddress ? this.ref(senderAddress) : null
+            };
+            result = await this.handleMessage(type, payload);
             success = true;
         } catch (ex) {
             if (!mail.callback) {

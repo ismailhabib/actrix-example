@@ -6,32 +6,48 @@ import {
     Channel,
     Handler,
     InterActorSystemMessage,
-    LocalAddress,
-    CombinedResponse
+    LocalAddress
 } from "./interfaces";
 import * as uuid from "uuid";
 
-export type ActorCons<T, U> = new (
+export type ActorCons<T> = new (
     name: string,
     address: Address,
     actorSystem: ActorSystem
-) => Actor<T, U>;
+) => Actor<T>;
 
-export class TypedActorRef<T, U> {
+export class TypedActorRef<T> {
     constructor(
         public address: Address,
         private actorSystem: ActorSystem,
-        Class?: ActorCons<T, U> | undefined
+        Class?: ActorCons<T> | undefined
     ) {}
 
-    classType = <V, W>(Class: ActorCons<V, W>) => {
-        return new TypedActorRef<V, W>(this.address, this.actorSystem, Class);
+    classType = <V>(Class: ActorCons<V>) => {
+        return new TypedActorRef<V>(this.address, this.actorSystem, Class);
     };
+
+    invoke(sender?: Address) {
+        return new Proxy(
+            {},
+            {
+                get: (target, prop, receiver) => {
+                    return payload =>
+                        this.actorSystem.sendMessage(
+                            this.address,
+                            prop as any,
+                            payload,
+                            sender || null
+                        );
+                }
+            }
+        ) as Handler<T>;
+    }
 }
 
 export class ActorSystem {
     private actorSystemRegistry: { [address: string]: Channel } = {};
-    private actorRegistry: { [address: string]: Actor<any, any> };
+    private actorRegistry: { [address: string]: Actor<any> };
 
     name: string;
 
@@ -102,12 +118,12 @@ export class ActorSystem {
                             }, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        this.compose()
-                            .type(type)
-                            .target(actorRef)
-                            .payload(payload)
-                            .sender(senderAddress!)
-                            .send();
+                        this.sendMessage(
+                            actorRef,
+                            type,
+                            payload,
+                            senderAddress
+                        );
                     } else {
                         this.log(
                             `Sending the question to the appropriate actor. Type: ${
@@ -115,23 +131,22 @@ export class ActorSystem {
                             }, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        this.compose()
-                            .type(type)
-                            .target(actorRef)
-                            .payload(payload)
-                            .sender(senderAddress!)
-                            .ask()
-                            .then(message => {
-                                this.log(
-                                    `Received an answer, sending the answer "${
-                                        message
-                                    }" for the question with type: ${
-                                        type
-                                    }, sender: ${senderAddress}, and payload:`,
-                                    payload
-                                );
-                                cb(message);
-                            });
+                        this.sendMessage(
+                            actorRef,
+                            type,
+                            payload,
+                            senderAddress
+                        ).then(message => {
+                            this.log(
+                                `Received an answer, sending the answer "${
+                                    message
+                                }" for the question with type: ${
+                                    type
+                                }, sender: ${senderAddress}, and payload:`,
+                                payload
+                            );
+                            cb(message);
+                        });
                     }
                 } else {
                     this.log("Unable to find the recipient of the message");
@@ -139,24 +154,25 @@ export class ActorSystem {
             }
         });
     }
-    createActor = <T, U>(name: string, Class: ActorCons<T, U>) => {
+    createActor = <T>(name: string, Class: ActorCons<T>) => {
         this.log(
             `Creating an actor with name: ${name} and type: ${Class.name}`
         );
         const address = name; // TODO: should have a proper mechanism to generate address
-        const actor = new Class(
-            name,
-            { actorSystemName: this.name, localAddress: address },
-            this
-        );
+        const fullAddress = {
+            actorSystemName: this.name,
+            localAddress: address
+        };
+        const actor = new Class(name, fullAddress, this);
         this.actorRegistry[address] = actor;
+        return this.ref(fullAddress).classType(Class);
     };
 
-    ref = (address: Address): TypedActorRef<any, any> => {
-        return new TypedActorRef<any, any>(address, this);
+    ref = (address: Address): TypedActorRef<any> => {
+        return new TypedActorRef<any>(address, this);
     };
 
-    findActor = (address: Address): TypedActorRef<any, any> | null => {
+    findActor = (address: Address): TypedActorRef<any> | null => {
         if (address.actorSystemName !== this.name) {
             this.log(
                 "This address contains reference to other actor system, you won't find it in this actor system"
@@ -165,18 +181,14 @@ export class ActorSystem {
         }
         const actor = this.actorRegistry[address.localAddress];
         if (actor) {
-            return new TypedActorRef<any, any>(address, this);
+            return new TypedActorRef<any>(address, this);
         } else {
             return null;
         }
     };
 
-    compose = () => {
-        return new MessageComposer<any, any, any>(this);
-    };
-
     sendMessage = (
-        target: TypedActorRef<any, any> | Address,
+        target: TypedActorRef<any> | Address,
         type: string,
         payload: any,
         senderAddress: Address | null
@@ -238,83 +250,5 @@ export class ActorSystem {
 
     private log(...message: any[]) {
         console.log("ActorSystem: ", ...message);
-    }
-}
-
-export class MessageComposer<
-    A,
-    B,
-    C extends keyof A & keyof CombinedResponse<A, B>
-    // ,
-    // D extends A[C],
-    // E extends CombinedResponse<A, B>[C]
-> {
-    constructor(private actorSystem: ActorSystem) {}
-    private _classType: ActorCons<A, B> | undefined;
-    private _senderAddress: Address | null = null;
-    private _targetAddress: Address | TypedActorRef<A, B> | undefined;
-    private _payload: A[C] | undefined;
-    private _type: C | undefined;
-    sender(senderAddress: Address): MessageComposer<A, B, C> {
-        this._senderAddress = senderAddress;
-        return this;
-    }
-
-    target<V, W, X extends keyof V & keyof CombinedResponse<V, W>>(
-        target: TypedActorRef<V, W>
-    ): MessageComposer<V, W, X> {
-        const newInstance = new MessageComposer<V, W, X>(this.actorSystem);
-        newInstance.copyValuesFrom(this);
-        newInstance._targetAddress = target;
-
-        return newInstance;
-    }
-
-    classType<W, X, Y extends keyof W & keyof CombinedResponse<W, X>>(
-        classType: ActorCons<W, X>
-    ): MessageComposer<W, X, Y> {
-        const newInstance = new MessageComposer<W, X, Y>(this.actorSystem);
-        newInstance.copyValuesFrom(this);
-        newInstance._classType = classType;
-        return newInstance;
-    }
-
-    type<V extends keyof A & keyof CombinedResponse<A, B>>(
-        type: V
-    ): MessageComposer<A, B, V> {
-        const newInstance = new MessageComposer<A, B, V>(this.actorSystem);
-        newInstance.copyValuesFrom(this);
-        newInstance._type = type;
-        return newInstance;
-    }
-
-    payload(payload: A[C]) {
-        this._payload = payload;
-        return this;
-    }
-
-    ask(): Promise<CombinedResponse<A, B>[C]> {
-        if (this._targetAddress && this._payload && this._type) {
-            return this.actorSystem.sendMessage(
-                this._targetAddress,
-                this._type,
-                this._payload,
-                this._senderAddress
-            );
-        } else {
-            return Promise.reject("Insufficient input");
-        }
-    }
-
-    send() {
-        this.ask();
-    }
-
-    copyValuesFrom(source: MessageComposer<any, any, any>) {
-        this._classType = source._classType;
-        this._payload = source._payload;
-        this._senderAddress = source._senderAddress;
-        this._targetAddress = source._targetAddress;
-        this._type = source._type;
     }
 }

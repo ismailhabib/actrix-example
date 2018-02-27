@@ -5,9 +5,9 @@ import { ChatClientActor } from "../ClientActor/ChatClientActor";
 import deepEqual = require("deep-equal");
 
 export type ChatActorPayload = {
-    subscribe: { userName: string };
-    unsubscribe: { address: Address; name: string };
-    post: { message: string };
+    subscribe: (payload: { userName: string }) => void;
+    unsubscribe: (payload: { address: Address; name: string }) => void;
+    post: (payload: { message: string }) => void;
 };
 
 export type ChatMessage = {
@@ -16,29 +16,25 @@ export type ChatMessage = {
     userName: string;
 };
 
-export class ChatServerActor extends Actor<ChatActorPayload, {}> {
+export class ChatServerActor extends Actor<ChatActorPayload> {
     subscribers: { userName: string; address: Address }[] = [];
     messages: ChatMessage[] = [];
 
     constructor(name: string, address: Address, actorSystem: ActorSystem) {
         super(name, address, actorSystem, {
-            subscribe: (payload, senderAddress) => {
-                this.log(`Subscribe request from ${senderAddress}`);
+            subscribe: payload => {
+                const senderRef = this.currentContext.senderRef;
+                this.log(`Subscribe request from ${senderRef}`);
                 this.subscribers.push({
                     userName: payload.userName,
-                    address: senderAddress!
+                    address: senderRef!.address!
                 });
-                this.compose()
-                    .target(
-                        actorSystem
-                            .ref(senderAddress!)
-                            .classType(ChatClientActor)
-                    )
-                    .type("update")
-                    .payload({ messages: this.messages })
-                    .send();
+                this.at(senderRef!.classType(ChatClientActor)).update({
+                    messages: this.messages
+                });
             },
-            unsubscribe: (payload, senderAddress) => {
+            unsubscribe: payload => {
+                const senderAddress = this.currentContext.senderAddress;
                 this.log(
                     `Request from ${senderAddress} for unsubscribing ${
                         payload.address
@@ -51,7 +47,9 @@ export class ChatServerActor extends Actor<ChatActorPayload, {}> {
                     this.subscribers = this.subscribers.splice(index, 1);
                 }
             },
-            post: (payload, senderAddress) => {
+            post: payload => {
+                const senderAddress = this.currentContext.senderAddress;
+
                 this.log(
                     `New message from ${senderAddress}: ${payload.message}`
                 );
@@ -64,15 +62,9 @@ export class ChatServerActor extends Actor<ChatActorPayload, {}> {
                 };
                 this.messages.push(newMessage);
                 this.subscribers.forEach(subscriber => {
-                    this.compose()
-                        .target(
-                            actorSystem
-                                .ref(subscriber.address)
-                                .classType(ChatClientActor)
-                        )
-                        .type("update")
-                        .payload({ messages: [newMessage] })
-                        .send();
+                    this.at(
+                        this.ref(subscriber.address).classType(ChatClientActor)
+                    ).update({ messages: [newMessage] });
                 });
             }
         });

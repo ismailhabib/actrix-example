@@ -1,62 +1,50 @@
 import { Actor } from "../Actor/Actor";
 import { Address } from "../Actor/interfaces";
-import { ActorSystem } from "../Actor/ActorSystem";
+import { ActorSystem, TypedActorRef } from "../Actor/ActorSystem";
 import { ChatMessage, ChatServerActor } from "../ServerActor/ChatServerActor";
 import { setTimeout } from "timers";
 
 export type ChatClientActorPayload = {
-    registerListener: { fn: (allMessages: ChatMessage[]) => void };
-    send: { message: string };
-    update: { messages: ChatMessage[] };
-    connect: { userName: string };
+    registerListener: (
+        payload: { fn: (allMessages: ChatMessage[]) => void }
+    ) => void;
+    send: (payload: { message: string }) => void;
+    update: (payload: { messages: ChatMessage[] }) => void;
+    connect: (payload: { userName: string }) => void;
 };
 
-export type ChatClientActorResponse = {
-    update: string;
-};
-
-export class ChatClientActor extends Actor<ChatClientActorPayload, {}> {
+export class ChatClientActor extends Actor<ChatClientActorPayload> {
     listener: ((allMessages: ChatMessage[]) => void) | undefined;
     messages: ChatMessage[] = [];
 
     constructor(name: string, address: Address, actorSystem: ActorSystem) {
         super(name, address, actorSystem, {
-            registerListener: (payload, senderAddress) => {
+            registerListener: payload => {
                 this.listener = payload.fn;
             },
-            update: (payload, senderAddress) => {
+            update: payload => {
                 this.log("Update is coming", payload.messages);
                 this.messages = this.messages.concat(payload.messages);
                 if (this.listener) {
                     this.listener(this.messages);
                 }
             },
-            send: (payload, senderAddress) => {
-                this.compose()
-                    .classType(ChatServerActor)
-                    .target(
-                        actorSystem.ref({
-                            actorSystemName: "server",
-                            localAddress: "chatActor"
-                        })
-                    )
-                    .type("post")
-                    .payload({ message: payload.message })
-                    .send();
+            send: payload => {
+                this.at(
+                    this.ref({
+                        actorSystemName: "server",
+                        localAddress: "chatActor"
+                    }).classType(ChatServerActor)
+                ).post({ message: payload.message });
             },
-            connect: (payload, senderAddress) => {
-                this.compose()
-                    .target(
-                        actorSystem
-                            .ref({
-                                actorSystemName: "server",
-                                localAddress: "chatActor"
-                            })
-                            .classType(ChatServerActor)
-                    )
-                    .type("subscribe")
-                    .payload(payload)
-                    .send();
+            connect: payload => {
+                this.log("Connecting");
+                this.at(
+                    this.ref({
+                        actorSystemName: "server",
+                        localAddress: "chatActor"
+                    }).classType(ChatServerActor)
+                ).subscribe(payload);
             }
         });
     }
