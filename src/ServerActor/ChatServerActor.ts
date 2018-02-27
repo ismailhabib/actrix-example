@@ -5,9 +5,9 @@ import { ChatClientActor } from "../ClientActor/ChatClientActor";
 import deepEqual = require("deep-equal");
 
 export type ChatActorPayload = {
-    subscribe: (payload: { userName: string }) => void;
-    unsubscribe: (payload: { address: Address; name: string }) => void;
-    post: (payload: { message: string }) => void;
+    subscribe: (payload: { userName: string }) => Promise<void>;
+    unsubscribe: (payload: { address: Address; name: string }) => Promise<void>;
+    post: (payload: { message: string }) => Promise<void>;
 };
 
 export type ChatMessage = {
@@ -22,7 +22,7 @@ export class ChatServerActor extends Actor<ChatActorPayload> {
 
     constructor(name: string, address: Address, actorSystem: ActorSystem) {
         super(name, address, actorSystem, {
-            subscribe: payload => {
+            subscribe: async payload => {
                 const senderRef = this.currentContext.senderRef;
                 this.log(`Subscribe request from ${senderRef}`);
                 this.subscribers.push({
@@ -33,7 +33,7 @@ export class ChatServerActor extends Actor<ChatActorPayload> {
                     messages: this.messages
                 });
             },
-            unsubscribe: payload => {
+            unsubscribe: async payload => {
                 const senderAddress = this.currentContext.senderAddress;
                 this.log(
                     `Request from ${senderAddress} for unsubscribing ${
@@ -47,7 +47,7 @@ export class ChatServerActor extends Actor<ChatActorPayload> {
                     this.subscribers = this.subscribers.splice(index, 1);
                 }
             },
-            post: payload => {
+            post: async payload => {
                 const senderAddress = this.currentContext.senderAddress;
 
                 this.log(

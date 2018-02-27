@@ -6,24 +6,25 @@ import {
     Channel,
     Handler,
     InterActorSystemMessage,
-    LocalAddress
+    LocalAddress,
+    BaseActorDefinition
 } from "./interfaces";
 import * as uuid from "uuid";
 
-export type ActorCons<T> = new (
+export type ActorCons<T extends BaseActorDefinition> = new (
     name: string,
     address: Address,
     actorSystem: ActorSystem
 ) => Actor<T>;
 
-export class TypedActorRef<T> {
+export class TypedActorRef<T extends BaseActorDefinition> {
     constructor(
         public address: Address,
         private actorSystem: ActorSystem,
         Class?: ActorCons<T> | undefined
     ) {}
 
-    classType = <V>(Class: ActorCons<V>) => {
+    classType = <V extends BaseActorDefinition>(Class: ActorCons<V>) => {
         return new TypedActorRef<V>(this.address, this.actorSystem, Class);
     };
 
@@ -154,7 +155,10 @@ export class ActorSystem {
             }
         });
     }
-    createActor = <T>(name: string, Class: ActorCons<T>) => {
+    createActor = <T extends BaseActorDefinition>(
+        name: string,
+        Class: ActorCons<T>
+    ) => {
         this.log(
             `Creating an actor with name: ${name} and type: ${Class.name}`
         );

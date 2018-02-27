@@ -1,5 +1,5 @@
 import { ActorSystem, ActorCons, TypedActorRef } from "./ActorSystem";
-import { Address, Handler } from "./interfaces";
+import { Address, Handler, BaseActorDefinition } from "./interfaces";
 
 type MailBoxMessage<T> = {
     type: T;
@@ -8,7 +8,7 @@ type MailBoxMessage<T> = {
     callback?: (error?: any, result?: any) => void;
 };
 
-export abstract class Actor<T> {
+export abstract class Actor<T extends BaseActorDefinition> {
     protected name: string;
     private mailBox: MailBoxMessage<keyof T>[] = [];
     private timerId: number | null;
@@ -29,7 +29,7 @@ export abstract class Actor<T> {
         this.timerId = null;
     }
 
-    at<A>(targetRef: TypedActorRef<A> | Address) {
+    at<A extends BaseActorDefinition>(targetRef: TypedActorRef<A> | Address) {
         return new Proxy(
             {},
             {
