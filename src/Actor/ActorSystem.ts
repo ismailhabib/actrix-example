@@ -11,21 +11,17 @@ import {
 } from "./interfaces";
 import * as uuid from "uuid";
 
-export type ActorCons<U> = new (
+export type ActorCons<T extends Actor> = new (
     name: string,
     address: Address,
     actorSystem: ActorSystem
-) => Actor<U>;
+) => T;
 
 export class TypedActorRef<T> {
-    constructor(
-        public address: Address,
-        private actorSystem: ActorSystem,
-        Class?: ActorCons<T> | undefined
-    ) {}
+    constructor(public address: Address, private actorSystem: ActorSystem) {}
 
-    classType = <V>(Class: ActorCons<V>) => {
-        return new TypedActorRef<V>(this.address, this.actorSystem, Class);
+    classType = <V>() => {
+        return new TypedActorRef<V>(this.address, this.actorSystem);
     };
 
     invoke(sender?: Address) {
@@ -48,7 +44,7 @@ export class TypedActorRef<T> {
 
 export class ActorSystem {
     private actorSystemRegistry: { [address: string]: Channel } = {};
-    private actorRegistry: { [address: string]: Actor<any> };
+    private actorRegistry: { [address: string]: Actor };
 
     name: string;
 
@@ -155,7 +151,7 @@ export class ActorSystem {
             }
         });
     }
-    createActor = <T>(name: string, Class: ActorCons<T>) => {
+    createActor = <T extends Actor>(name: string, Class: ActorCons<T>) => {
         this.log(
             `Creating an actor with name: ${name} and type: ${Class.name}`
         );
@@ -166,7 +162,7 @@ export class ActorSystem {
         };
         const actor = new Class(name, fullAddress, this);
         this.actorRegistry[address] = actor;
-        return this.ref(fullAddress).classType(Class);
+        return this.ref(fullAddress).classType<T>();
     };
 
     ref = (address: Address): TypedActorRef<any> => {
@@ -214,7 +210,12 @@ export class ActorSystem {
             const actor = this.actorRegistry[address.localAddress];
             if (actor) {
                 this.log("Found the actor. Sending the message");
-                return actor.pushToMailbox(type, payload, senderAddress);
+                // TODO: TS infers the 'type' parameter as never
+                return (actor.pushToMailbox as any)(
+                    type,
+                    payload,
+                    senderAddress
+                );
             } else {
                 this.log("Unable to find the actor. It might have died");
                 return Promise.reject("Actor not found");

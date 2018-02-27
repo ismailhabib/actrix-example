@@ -8,11 +8,11 @@ type MailBoxMessage<T> = {
     callback?: (error?: any, result?: any) => void;
 };
 
-type Method<T> = { [K in Exclude<keyof T, keyof Actor<T>>]: T[K] };
+type Method<T> = { [K in Exclude<keyof T, keyof Actor>]: T[K] };
 
-export abstract class Actor<T> {
+export abstract class Actor {
     protected name: string;
-    private mailBox: MailBoxMessage<keyof T>[] = [];
+    private mailBox: MailBoxMessage<keyof Method<this>>[] = [];
     private timerId: number | null;
     protected currentContext: {
         senderAddress: Address | null;
@@ -21,6 +21,7 @@ export abstract class Actor<T> {
         senderAddress: null,
         senderRef: null
     };
+
     constructor(
         name: string,
         protected address: Address,
@@ -47,7 +48,7 @@ export abstract class Actor<T> {
         ) as Handler<A>;
     }
 
-    pushToMailbox = <K extends keyof Method<T>>(
+    pushToMailbox = <K extends keyof Method<this>>(
         type: K,
         payload: any,
         senderAddress: Address | null
@@ -78,7 +79,7 @@ export abstract class Actor<T> {
         console.log(`${this.name}:`, ...message);
     }
 
-    private async handleMessage<K extends keyof Method<T>>(
+    private async handleMessage<K extends keyof Method<this>>(
         type: string,
         payload: any
     ): Promise<any> {

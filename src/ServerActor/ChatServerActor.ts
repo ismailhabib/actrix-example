@@ -16,8 +16,7 @@ export type ChatMessage = {
     userName: string;
 };
 
-export class ChatServerActor extends Actor<ChatServerActorAPI>
-    implements ChatServerActorAPI {
+export class ChatServerActor extends Actor implements ChatServerActorAPI {
     subscribers: { userName: string; address: Address }[] = [];
     messages: ChatMessage[] = [];
 
@@ -32,7 +31,7 @@ export class ChatServerActor extends Actor<ChatServerActorAPI>
             userName: payload.userName,
             address: senderRef!.address!
         });
-        this.at(senderRef!.classType(ChatClientActor)).update({
+        this.at(senderRef!.classType<ChatClientActor>()).update({
             messages: this.messages
         });
     };
@@ -65,7 +64,7 @@ export class ChatServerActor extends Actor<ChatServerActorAPI>
 
         this.subscribers.forEach(subscriber => {
             this.at(
-                this.ref(subscriber.address).classType(ChatClientActor)
+                this.ref(subscriber.address).classType<ChatClientActor>()
             ).update({ messages: [newMessage] });
         });
     };

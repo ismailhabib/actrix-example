@@ -17,8 +17,7 @@ export type ChatClientActorAPI = {
     connect: (payload: { userName: string }) => Promise<void>;
 };
 
-export class ChatClientActor extends Actor<ChatClientActorAPI>
-    implements ChatClientActorAPI {
+export class ChatClientActor extends Actor implements ChatClientActorAPI {
     listener: ((allMessages: ChatMessage[]) => void) | undefined;
     messages: ChatMessage[] = [];
 
@@ -43,7 +42,7 @@ export class ChatClientActor extends Actor<ChatClientActorAPI>
             this.ref({
                 actorSystemName: "server",
                 localAddress: "chatActor"
-            }).classType(ChatServerActor)
+            }).classType<ChatServerActorAPI>()
         ).post({ message: payload.message });
     };
 
@@ -53,7 +52,7 @@ export class ChatClientActor extends Actor<ChatClientActorAPI>
             this.ref({
                 actorSystemName: "server",
                 localAddress: "chatActor"
-            }).classType(ChatServerActor)
+            }).classType<ChatServerActorAPI>()
         ).subscribe(payload);
     };
 }
