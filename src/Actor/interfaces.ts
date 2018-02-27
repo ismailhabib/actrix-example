@@ -1,7 +1,7 @@
 export type Message = {};
 
 export type BaseActorDefinition = {
-    [key: string]: (payload: any) => Promise<any>;
+    [key: string]: (...payload: any[]) => Promise<any>;
 };
 export type ActorSystemAdress = string;
 export type LocalAddress = string;
