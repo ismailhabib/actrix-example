@@ -1,6 +1,6 @@
 import { Actor } from "../Actor/Actor";
 import { Address, BaseActorDefinition, Handler } from "../Actor/interfaces";
-import { ActorSystem, TypedActorRef } from "../Actor/ActorSystem";
+import { ActorSystem, ActorRef } from "../Actor/ActorSystem";
 import {
     ChatMessage,
     ChatServerActor,
@@ -20,10 +20,10 @@ export type ChatClientActorAPI = {
 export class ChatClientActor extends Actor implements ChatClientActorAPI {
     listener: ((allMessages: ChatMessage[]) => void) | undefined;
     messages: ChatMessage[] = [];
-
-    constructor(name: string, address: Address, actorSystem: ActorSystem) {
-        super(name, address, actorSystem);
-    }
+    serverActorRef = this.ref<ChatServerActorAPI>({
+        actorSystemName: "server",
+        localAddress: "chatActor"
+    });
 
     registerListener = async payload => {
         this.listener = payload.fn;
@@ -38,21 +38,11 @@ export class ChatClientActor extends Actor implements ChatClientActorAPI {
     };
 
     send = async payload => {
-        this.at(
-            this.ref({
-                actorSystemName: "server",
-                localAddress: "chatActor"
-            }).classType<ChatServerActorAPI>()
-        ).post({ message: payload.message });
+        this.at(this.serverActorRef).post({ message: payload.message });
     };
 
     connect = async payload => {
         this.log("Connecting");
-        this.at(
-            this.ref({
-                actorSystemName: "server",
-                localAddress: "chatActor"
-            }).classType<ChatServerActorAPI>()
-        ).subscribe(payload);
+        this.at(this.serverActorRef).subscribe(payload);
     };
 }

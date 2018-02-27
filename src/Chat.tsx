@@ -1,7 +1,7 @@
 import { ChatMessage } from "./ServerActor/ChatServerActor";
 import * as React from "react";
 import * as ioClient from "socket.io-client";
-import { ActorSystem, TypedActorRef } from "./Actor/ActorSystem";
+import { ActorSystem, ActorRef } from "./Actor/ActorSystem";
 import {
     ChatClientActor,
     ChatClientActorAPI
@@ -17,7 +17,7 @@ export class Chat extends React.Component<
     }
 > {
     actorSystem: ActorSystem | null = null;
-    actorRef: TypedActorRef<ChatClientActorAPI> | undefined;
+    actorRef: ActorRef<ChatClientActorAPI> | undefined;
     name = "ChatClient" + Math.random();
     constructor(props: {}) {
         super(props);

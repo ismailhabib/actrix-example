@@ -1,7 +1,5 @@
 import * as React from "react";
 import "./App.css";
-import * as ioClient from "socket.io-client";
-import { ActorSystem, TypedActorRef } from "./Actor/ActorSystem";
 import { Chat } from "./Chat";
 
 const logo = require("./logo.svg");

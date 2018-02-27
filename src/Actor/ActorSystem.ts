@@ -17,11 +17,11 @@ export type ActorCons<T extends Actor> = new (
     actorSystem: ActorSystem
 ) => T;
 
-export class TypedActorRef<T> {
+export class ActorRef<T> {
     constructor(public address: Address, private actorSystem: ActorSystem) {}
 
     classType = <V>() => {
-        return new TypedActorRef<V>(this.address, this.actorSystem);
+        return new ActorRef<V>(this.address, this.actorSystem);
     };
 
     invoke(sender?: Address) {
@@ -165,11 +165,11 @@ export class ActorSystem {
         return this.ref(fullAddress).classType<T>();
     };
 
-    ref = (address: Address): TypedActorRef<any> => {
-        return new TypedActorRef<any>(address, this);
+    ref = <T>(address: Address): ActorRef<T> => {
+        return new ActorRef<T>(address, this);
     };
 
-    findActor = (address: Address): TypedActorRef<any> | null => {
+    findActor = <T>(address: Address): ActorRef<T> | null => {
         if (address.actorSystemName !== this.name) {
             this.log(
                 "This address contains reference to other actor system, you won't find it in this actor system"
@@ -178,14 +178,14 @@ export class ActorSystem {
         }
         const actor = this.actorRegistry[address.localAddress];
         if (actor) {
-            return new TypedActorRef<any>(address, this);
+            return new ActorRef<T>(address, this);
         } else {
             return null;
         }
     };
 
     sendMessage = (
-        target: TypedActorRef<any> | Address,
+        target: ActorRef<any> | Address,
         type: string,
         payload: any,
         senderAddress: Address | null
@@ -200,7 +200,7 @@ export class ActorSystem {
             payload
         );
         let address: Address;
-        if (target instanceof TypedActorRef) {
+        if (target instanceof ActorRef) {
             address = target.address;
         } else {
             address = target;

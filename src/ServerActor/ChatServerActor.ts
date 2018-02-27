@@ -1,6 +1,6 @@
 import { Actor } from "../Actor/Actor";
 import { Address } from "../Actor/interfaces";
-import { ActorSystem } from "../Actor/ActorSystem";
+import { ActorSystem, ActorRef } from "../Actor/ActorSystem";
 import { ChatClientActor } from "../ClientActor/ChatClientActor";
 import deepEqual = require("deep-equal");
 
@@ -20,24 +20,20 @@ export class ChatServerActor extends Actor implements ChatServerActorAPI {
     subscribers: { userName: string; address: Address }[] = [];
     messages: ChatMessage[] = [];
 
-    constructor(name: string, address: Address, actorSystem: ActorSystem) {
-        super(name, address, actorSystem);
-    }
-
     subscribe = async payload => {
-        const senderRef = this.currentContext.senderRef;
+        const senderRef: ActorRef<ChatClientActor> = this.context.senderRef!;
         this.log(`Subscribe request from ${senderRef}`);
         this.subscribers.push({
             userName: payload.userName,
             address: senderRef!.address!
         });
-        this.at(senderRef!.classType<ChatClientActor>()).update({
+        this.at(senderRef).update({
             messages: this.messages
         });
     };
 
     unsubscribe = async payload => {
-        const senderAddress = this.currentContext.senderAddress;
+        const senderAddress = this.context.senderAddress;
         this.log(
             `Request from ${senderAddress} for unsubscribing ${payload.address}`
         );
@@ -50,7 +46,7 @@ export class ChatServerActor extends Actor implements ChatServerActorAPI {
     };
 
     post = async payload => {
-        const senderAddress = this.currentContext.senderAddress;
+        const senderAddress = this.context.senderAddress;
 
         this.log(`New message from ${senderAddress}: ${payload.message}`);
         const newMessage: ChatMessage = {
@@ -63,9 +59,9 @@ export class ChatServerActor extends Actor implements ChatServerActorAPI {
         this.messages.push(newMessage);
 
         this.subscribers.forEach(subscriber => {
-            this.at(
-                this.ref(subscriber.address).classType<ChatClientActor>()
-            ).update({ messages: [newMessage] });
+            this.at<ChatClientActor>(subscriber.address).update({
+                messages: [newMessage]
+            });
         });
     };
 }

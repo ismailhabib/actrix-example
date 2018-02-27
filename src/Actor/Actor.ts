@@ -1,4 +1,4 @@
-import { ActorSystem, ActorCons, TypedActorRef } from "./ActorSystem";
+import { ActorSystem, ActorCons, ActorRef } from "./ActorSystem";
 import { Address, Handler, BaseActorDefinition } from "./interfaces";
 
 type MailBoxMessage<T> = {
@@ -14,9 +14,9 @@ export abstract class Actor {
     protected name: string;
     private mailBox: MailBoxMessage<keyof Method<this>>[] = [];
     private timerId: number | null;
-    protected currentContext: {
+    protected context: {
         senderAddress: Address | null;
-        senderRef: TypedActorRef<any> | null;
+        senderRef: ActorRef<any> | null;
     } = {
         senderAddress: null,
         senderRef: null
@@ -31,7 +31,7 @@ export abstract class Actor {
         this.timerId = null;
     }
 
-    at<A>(targetRef: TypedActorRef<A>) {
+    at<A>(targetRef: ActorRef<A> | Address) {
         return new Proxy(
             {},
             {
@@ -71,8 +71,8 @@ export abstract class Actor {
     };
 
     // TODO: 'ref' vs 'at' will confuse people
-    ref = (address: Address) => {
-        return this.actorSystem.ref(address);
+    ref = <T>(address: Address) => {
+        return this.actorSystem.ref<T>(address);
     };
 
     protected log(...message: any[]) {
@@ -104,7 +104,7 @@ export abstract class Actor {
         try {
             const { type, payload, senderAddress } = mail;
 
-            this.currentContext = {
+            this.context = {
                 senderAddress,
                 senderRef: senderAddress ? this.ref(senderAddress) : null
             };
