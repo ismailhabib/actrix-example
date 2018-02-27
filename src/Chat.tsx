@@ -4,7 +4,7 @@ import * as ioClient from "socket.io-client";
 import { ActorSystem, TypedActorRef } from "./Actor/ActorSystem";
 import {
     ChatClientActor,
-    ChatClientActorPayload
+    ChatClientActorAPI
 } from "./ClientActor/ChatClientActor";
 
 export class Chat extends React.Component<
@@ -17,7 +17,7 @@ export class Chat extends React.Component<
     }
 > {
     actorSystem: ActorSystem | null = null;
-    actorRef: TypedActorRef<ChatClientActorPayload> | undefined;
+    actorRef: TypedActorRef<ChatClientActorAPI> | undefined;
     name = "ChatClient" + Math.random();
     constructor(props: {}) {
         super(props);
@@ -39,6 +39,7 @@ export class Chat extends React.Component<
             this.name,
             ChatClientActor
         );
+
         this.actorRef.invoke().registerListener({
             fn: (messages: ChatMessage[]) => {
                 console.log("Updating component state");

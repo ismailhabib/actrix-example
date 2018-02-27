@@ -11,20 +11,20 @@ import {
 } from "./interfaces";
 import * as uuid from "uuid";
 
-export type ActorCons<T extends BaseActorDefinition> = new (
+export type ActorCons<U> = new (
     name: string,
     address: Address,
     actorSystem: ActorSystem
-) => Actor<T>;
+) => Actor<U>;
 
-export class TypedActorRef<T extends BaseActorDefinition> {
+export class TypedActorRef<T> {
     constructor(
         public address: Address,
         private actorSystem: ActorSystem,
         Class?: ActorCons<T> | undefined
     ) {}
 
-    classType = <V extends BaseActorDefinition>(Class: ActorCons<V>) => {
+    classType = <V>(Class: ActorCons<V>) => {
         return new TypedActorRef<V>(this.address, this.actorSystem, Class);
     };
 
@@ -42,7 +42,7 @@ export class TypedActorRef<T extends BaseActorDefinition> {
                         );
                 }
             }
-        ) as Handler<T>;
+        ) as T;
     }
 }
 
@@ -155,10 +155,7 @@ export class ActorSystem {
             }
         });
     }
-    createActor = <T extends BaseActorDefinition>(
-        name: string,
-        Class: ActorCons<T>
-    ) => {
+    createActor = <T>(name: string, Class: ActorCons<T>) => {
         this.log(
             `Creating an actor with name: ${name} and type: ${Class.name}`
         );
@@ -217,7 +214,7 @@ export class ActorSystem {
             const actor = this.actorRegistry[address.localAddress];
             if (actor) {
                 this.log("Found the actor. Sending the message");
-                return actor.pushToMailbox(type as any, payload, senderAddress);
+                return actor.pushToMailbox(type, payload, senderAddress);
             } else {
                 this.log("Unable to find the actor. It might have died");
                 return Promise.reject("Actor not found");

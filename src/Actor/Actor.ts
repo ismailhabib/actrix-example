@@ -2,13 +2,15 @@ import { ActorSystem, ActorCons, TypedActorRef } from "./ActorSystem";
 import { Address, Handler, BaseActorDefinition } from "./interfaces";
 
 type MailBoxMessage<T> = {
-    type: T;
+    type: string;
     payload: any;
     senderAddress: Address | null;
     callback?: (error?: any, result?: any) => void;
 };
 
-export abstract class Actor<T extends BaseActorDefinition> {
+type Method<T> = { [K in Exclude<keyof T, keyof Actor<T>>]: T[K] };
+
+export abstract class Actor<T> {
     protected name: string;
     private mailBox: MailBoxMessage<keyof T>[] = [];
     private timerId: number | null;
@@ -21,15 +23,14 @@ export abstract class Actor<T extends BaseActorDefinition> {
     };
     constructor(
         name: string,
-        private address: Address,
-        private actorSystem: ActorSystem,
-        private handlers: Handler<T>
+        protected address: Address,
+        protected actorSystem: ActorSystem // private handlers: Handler<>
     ) {
         this.name = name;
         this.timerId = null;
     }
 
-    at<A extends BaseActorDefinition>(targetRef: TypedActorRef<A> | Address) {
+    at<A>(targetRef: TypedActorRef<A>) {
         return new Proxy(
             {},
             {
@@ -46,7 +47,7 @@ export abstract class Actor<T extends BaseActorDefinition> {
         ) as Handler<A>;
     }
 
-    pushToMailbox = <K extends keyof T>(
+    pushToMailbox = <K extends keyof Method<T>>(
         type: K,
         payload: any,
         senderAddress: Address | null
@@ -77,11 +78,11 @@ export abstract class Actor<T extends BaseActorDefinition> {
         console.log(`${this.name}:`, ...message);
     }
 
-    private async handleMessage<K extends keyof T>(
-        type: K,
+    private async handleMessage<K extends keyof Method<T>>(
+        type: string,
         payload: any
     ): Promise<any> {
-        return (this.handlers[type] as any)(payload);
+        return (this[type] as any)(payload);
     }
 
     private scheduleNextTick = () => {
