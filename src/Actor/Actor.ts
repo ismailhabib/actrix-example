@@ -1,4 +1,4 @@
-import { ActorSystem, ActorCons, ActorRef } from "./ActorSystem";
+import { ActorSystem } from "./ActorSystem";
 import { Address, Handler, BaseActorDefinition } from "./interfaces";
 
 type MailBoxMessage<T> = {
@@ -8,11 +8,40 @@ type MailBoxMessage<T> = {
     callback?: (error?: any, result?: any) => void;
 };
 
-type Method<T> = { [K in Exclude<keyof T, keyof Actor>]: T[K] };
+export type Method<T> = {
+    [K in Exclude<keyof T, keyof Actor>]: T[K] extends Function ? T[K] : never
+};
+
+export type ActorCons<T extends Actor> = new (
+    name: string,
+    address: Address,
+    actorSystem: ActorSystem
+) => T;
+
+export class ActorRef<T extends BaseActorDefinition> {
+    constructor(public address: Address, private actorSystem: ActorSystem) {}
+
+    invoke(sender?: Address) {
+        return new Proxy(
+            {},
+            {
+                get: (target, prop, receiver) => {
+                    return payload =>
+                        this.actorSystem.sendMessage(
+                            this.address,
+                            prop as any,
+                            payload,
+                            sender || null
+                        );
+                }
+            }
+        ) as Method<T>;
+    }
+}
 
 export abstract class Actor {
     protected name: string;
-    private mailBox: MailBoxMessage<keyof Method<this>>[] = [];
+    private mailBox: MailBoxMessage<keyof this>[] = [];
     private timerId: number | null;
     protected context: {
         senderAddress: Address | null;
@@ -31,7 +60,7 @@ export abstract class Actor {
         this.timerId = null;
     }
 
-    at<A>(targetRef: ActorRef<A> | Address) {
+    at<A extends BaseActorDefinition>(targetRef: ActorRef<A> | Address) {
         return new Proxy(
             {},
             {
@@ -48,7 +77,7 @@ export abstract class Actor {
         ) as Handler<A>;
     }
 
-    pushToMailbox = <K extends keyof Method<this>>(
+    pushToMailbox = <K extends keyof this>(
         type: K,
         payload: any,
         senderAddress: Address | null
@@ -71,7 +100,7 @@ export abstract class Actor {
     };
 
     // TODO: 'ref' vs 'at' will confuse people
-    ref = <T>(address: Address) => {
+    ref = <T extends BaseActorDefinition>(address: Address) => {
         return this.actorSystem.ref<T>(address);
     };
 
@@ -79,7 +108,9 @@ export abstract class Actor {
         console.log(`${this.name}:`, ...message);
     }
 
-    private async handleMessage<K extends keyof Method<this>>(
+    // TODO: K extends keyof this is not actually the proper solution,
+    // good for now though since it doesn't affect end-user
+    private async handleMessage<K extends keyof this>(
         type: string,
         payload: any
     ): Promise<any> {

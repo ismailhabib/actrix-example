@@ -1,11 +1,12 @@
 import { ChatMessage } from "./ServerActor/ChatServerActor";
 import * as React from "react";
 import * as ioClient from "socket.io-client";
-import { ActorSystem, ActorRef } from "./Actor/ActorSystem";
+import { ActorSystem } from "./Actor/ActorSystem";
 import {
     ChatClientActor,
     ChatClientActorAPI
 } from "./ClientActor/ChatClientActor";
+import { ActorRef } from "./Actor/Actor";
 
 export class Chat extends React.Component<
     {},
@@ -59,9 +60,9 @@ export class Chat extends React.Component<
                 />
                 <button
                     onClick={() => {
-                        this.actorRef!
-                            .invoke()
-                            .connect({ userName: this.state.userName });
+                        this.actorRef!.invoke().connect({
+                            userName: this.state.userName
+                        });
                         this.setState({ isConnected: true });
                     }}
                     disabled={this.state.isConnected}
@@ -76,9 +77,9 @@ export class Chat extends React.Component<
                 />
                 <button
                     onClick={() => {
-                        this.actorRef!
-                            .invoke()
-                            .send({ message: this.state.myMessage });
+                        this.actorRef!.invoke().send({
+                            message: this.state.myMessage
+                        });
                         this.setState({ myMessage: "" });
                     }}
                     disabled={!this.state.isConnected}

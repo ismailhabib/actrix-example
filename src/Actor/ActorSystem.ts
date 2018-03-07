@@ -1,4 +1,4 @@
-import { Actor } from "./Actor";
+import { Actor, ActorCons, ActorRef, Method } from "./Actor";
 import { EventEmitter } from "events";
 import {
     Message,
@@ -10,37 +10,6 @@ import {
     BaseActorDefinition
 } from "./interfaces";
 import * as uuid from "uuid";
-
-export type ActorCons<T extends Actor> = new (
-    name: string,
-    address: Address,
-    actorSystem: ActorSystem
-) => T;
-
-export class ActorRef<T> {
-    constructor(public address: Address, private actorSystem: ActorSystem) {}
-
-    classType = <V>() => {
-        return new ActorRef<V>(this.address, this.actorSystem);
-    };
-
-    invoke(sender?: Address) {
-        return new Proxy(
-            {},
-            {
-                get: (target, prop, receiver) => {
-                    return payload =>
-                        this.actorSystem.sendMessage(
-                            this.address,
-                            prop as any,
-                            payload,
-                            sender || null
-                        );
-                }
-            }
-        ) as T;
-    }
-}
 
 export class ActorSystem {
     private actorSystemRegistry: { [address: string]: Channel } = {};
@@ -110,9 +79,7 @@ export class ActorSystem {
                     } = interActorSystemMessage;
                     if (mode === "send") {
                         this.log(
-                            `Sending the message to the appropriate actor. Type: ${
-                                type
-                            }, sender: ${senderAddress}, and payload:`,
+                            `Sending the message to the appropriate actor. Type: ${type}, sender: ${senderAddress}, and payload:`,
                             payload
                         );
                         this.sendMessage(
@@ -123,9 +90,7 @@ export class ActorSystem {
                         );
                     } else {
                         this.log(
-                            `Sending the question to the appropriate actor. Type: ${
-                                type
-                            }, sender: ${senderAddress}, and payload:`,
+                            `Sending the question to the appropriate actor. Type: ${type}, sender: ${senderAddress}, and payload:`,
                             payload
                         );
                         this.sendMessage(
@@ -135,11 +100,7 @@ export class ActorSystem {
                             senderAddress
                         ).then(message => {
                             this.log(
-                                `Received an answer, sending the answer "${
-                                    message
-                                }" for the question with type: ${
-                                    type
-                                }, sender: ${senderAddress}, and payload:`,
+                                `Received an answer, sending the answer "${message}" for the question with type: ${type}, sender: ${senderAddress}, and payload:`,
                                 payload
                             );
                             cb(message);
@@ -162,14 +123,16 @@ export class ActorSystem {
         };
         const actor = new Class(name, fullAddress, this);
         this.actorRegistry[address] = actor;
-        return this.ref(fullAddress).classType<T>();
+        return this.ref<any>(fullAddress);
     };
 
-    ref = <T>(address: Address): ActorRef<T> => {
+    ref = <T extends BaseActorDefinition>(address: Address): ActorRef<T> => {
         return new ActorRef<T>(address, this);
     };
 
-    findActor = <T>(address: Address): ActorRef<T> | null => {
+    findActor = <T extends BaseActorDefinition>(
+        address: Address
+    ): ActorRef<T> | null => {
         if (address.actorSystemName !== this.name) {
             this.log(
                 "This address contains reference to other actor system, you won't find it in this actor system"

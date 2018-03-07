@@ -1,6 +1,6 @@
 import { Actor } from "../Actor/Actor";
 import { Address, BaseActorDefinition, Handler } from "../Actor/interfaces";
-import { ActorSystem, ActorRef } from "../Actor/ActorSystem";
+import { ActorSystem } from "../Actor/ActorSystem";
 import {
     ChatMessage,
     ChatServerActor,
@@ -18,9 +18,9 @@ export type ChatClientActorAPI = {
 };
 
 export class ChatClientActor extends Actor implements ChatClientActorAPI {
-    listener: ((allMessages: ChatMessage[]) => void) | undefined;
-    messages: ChatMessage[] = [];
-    serverActorRef = this.ref<ChatServerActorAPI>({
+    private listener: ((allMessages: ChatMessage[]) => void) | undefined;
+    private messages: ChatMessage[] = [];
+    private serverActorRef = this.ref<ChatServerActorAPI>({
         actorSystemName: "server",
         localAddress: "chatActor"
     });

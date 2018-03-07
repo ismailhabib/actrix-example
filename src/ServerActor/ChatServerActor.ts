@@ -1,7 +1,7 @@
-import { Actor } from "../Actor/Actor";
+import { Actor, ActorRef } from "../Actor/Actor";
 import { Address } from "../Actor/interfaces";
-import { ActorSystem, ActorRef } from "../Actor/ActorSystem";
-import { ChatClientActor } from "../ClientActor/ChatClientActor";
+import { ActorSystem } from "../Actor/ActorSystem";
+import { ChatClientActorAPI } from "../ClientActor/ChatClientActor";
 import deepEqual = require("deep-equal");
 
 export type ChatServerActorAPI = {
@@ -17,11 +17,11 @@ export type ChatMessage = {
 };
 
 export class ChatServerActor extends Actor implements ChatServerActorAPI {
-    subscribers: { userName: string; address: Address }[] = [];
-    messages: ChatMessage[] = [];
+    private subscribers: { userName: string; address: Address }[] = [];
+    private messages: ChatMessage[] = [];
 
     subscribe = async payload => {
-        const senderRef: ActorRef<ChatClientActor> = this.context.senderRef!;
+        const senderRef: ActorRef<ChatClientActorAPI> = this.context.senderRef!;
         this.log(`Subscribe request from ${senderRef}`);
         this.subscribers.push({
             userName: payload.userName,
@@ -59,7 +59,7 @@ export class ChatServerActor extends Actor implements ChatServerActorAPI {
         this.messages.push(newMessage);
 
         this.subscribers.forEach(subscriber => {
-            this.at<ChatClientActor>(subscriber.address).update({
+            this.at<ChatClientActorAPI>(subscriber.address).update({
                 messages: [newMessage]
             });
         });
