@@ -1,4 +1,4 @@
-import { flow } from "../Utils";
+import { promisify } from "../Utils";
 
 function somethingAsync() {
     return new Promise((resolve, reject) => {
@@ -6,7 +6,7 @@ function somethingAsync() {
     });
 }
 
-const run = flow(function*() {
+const run = promisify(function*() {
     console.log(1);
     yield somethingAsync();
     console.log(2);

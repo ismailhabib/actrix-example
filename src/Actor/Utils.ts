@@ -72,7 +72,7 @@ export type CancellablePromise<T> = Promise<T> & { cancel(): void };
 //     generator: (a1: A1) => IterableIterator<any>
 // ): (a1: A1) => CancellablePromise<A1>;
 
-export type Flow<
+export type Promisify<
     T extends (...args: any[]) => IterableIterator<any>
 > = T extends () => IterableIterator<infer B1>
     ? Exclude<B1, Promise<any>> extends never
@@ -90,14 +90,14 @@ export type Flow<
                       a2: A2
                   ) => CancellablePromise<Exclude<B1, Promise<any>>>
             : never;
-export function flow<T extends (...args: any[]) => IterableIterator<any>>(
-    generator: T,
-    ctx?
-): Flow<T>;
-export function flow(generator: Function, ctx?) {
+export function promisify<T extends (...args: any[]) => IterableIterator<any>>(
+    generator: T
+): Promisify<T>;
+export function promisify(generator: Function) {
     // Implementation based on https://github.com/tj/co/blob/master/index.js
     return function() {
         const args = arguments;
+        const ctx = this;
         // const runId = ++generatorId;
         const gen: IterableIterator<any> = generator.apply(ctx, args);
         let rejector: (error: any) => void;

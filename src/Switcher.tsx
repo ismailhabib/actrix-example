@@ -2,7 +2,7 @@ import * as React from "react";
 import { ActorSystem } from "./Actor/ActorSystem";
 import { ActorRef, Actor } from "./Actor/Actor";
 import { Address } from "./Actor/interfaces";
-import { flow } from "./Actor/Utils";
+import { promisify } from "./Actor/Utils";
 
 export class Switcher extends React.Component<
     {},
@@ -75,15 +75,22 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
 
     openRoom = async roomName => {
         return new Promise<string>((resolve, reject) => {
+            const openRoomMsg = this.mailBox.find(
+                mail => mail.type === "openRoom"
+            );
+            if (openRoomMsg) {
+                reject();
+            }
             setTimeout(() => {
                 resolve(`Welcome to room ${roomName}`);
-            }, 3000);
+            }, Math.random() * 5000);
         });
     };
     registerListener = async (listener: (value: string) => void) => {
         this.listener = listener;
     };
-    changeRoom = flow(this.changeRoomHelper, this);
+
+    changeRoom = promisify(this.changeRoomHelper);
     *changeRoomHelper(roomName: RoomName) {
         const value = yield this.openRoom(roomName);
         this.listener && this.listener(value);

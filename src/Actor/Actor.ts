@@ -42,7 +42,7 @@ export class ActorRef<T extends BaseActorDefinition> {
 
 export abstract class Actor {
     protected name: string;
-    private mailBox: MailBoxMessage<keyof this>[] = [];
+    protected mailBox: MailBoxMessage<keyof this>[] = [];
     private timerId: number | null;
     private currentPromise: Promise<any> | CancellablePromise<any> | undefined;
     protected currentlyProcessedMessage: MailBoxMessage<keyof this> | undefined;
@@ -167,6 +167,7 @@ export abstract class Actor {
             this.currentPromise = this.handleMessage(type, payload);
             this.currentlyProcessedMessage = mail;
             try {
+                // why do I need a try here? This implementation is now incorrect because when a message processing is cancelled, the result will be undefined
                 result = await this.currentPromise;
             } catch (er) {}
             this.currentlyProcessedMessage = undefined;
