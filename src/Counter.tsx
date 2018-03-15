@@ -12,15 +12,15 @@ async function asyncInc(value: number) {
 
 export class Counter extends React.Component<
     {},
-    { naiveCounter: number; ourCounter: number }
+    { naiveCounter: number; actorCounter: number }
 > {
     naiveCounter: NaiveCounter;
-    ourCounter: ActorRef<CounterAPI>;
+    actorCounter: ActorRef<CounterAPI>;
     constructor(props) {
         super(props);
-        this.state = { naiveCounter: 0, ourCounter: 0 };
+        this.state = { naiveCounter: 0, actorCounter: 0 };
         this.naiveCounter = new NaiveCounter();
-        this.ourCounter = new ActorSystem().createActor(
+        this.actorCounter = new ActorSystem().createActor(
             "myCounter",
             CounterActor
         );
@@ -28,8 +28,8 @@ export class Counter extends React.Component<
         this.naiveCounter.registerListener(number => {
             this.setState({ naiveCounter: number });
         });
-        this.ourCounter.invoke().registerListener(number => {
-            this.setState({ ourCounter: number });
+        this.actorCounter.invoke().registerListener(number => {
+            this.setState({ actorCounter: number });
         });
     }
 
@@ -38,14 +38,14 @@ export class Counter extends React.Component<
             <div>
                 <button onClick={this.handleButtonClick}>Increment</button>
                 <div>Naive counter: {this.state.naiveCounter}</div>
-                <div>Our counter: {this.state.ourCounter}</div>
+                <div>Our counter: {this.state.actorCounter}</div>
             </div>
         );
     }
 
     handleButtonClick = async () => {
         this.naiveCounter.increment();
-        this.ourCounter.invoke().increment();
+        this.actorCounter.invoke().increment();
     };
 }
 
@@ -56,7 +56,6 @@ type CounterAPI = {
 
 class NaiveCounter implements CounterAPI {
     counter = 0;
-
     listener: ((counter: number) => void) | undefined;
     registerListener = async (listener: (counter: number) => void) => {
         this.listener = listener;
