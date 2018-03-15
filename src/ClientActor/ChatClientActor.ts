@@ -1,5 +1,5 @@
 import { Actor } from "../Actor/Actor";
-import { Address, BaseActorDefinition, Handler } from "../Actor/interfaces";
+import { Address, Handler } from "../Actor/interfaces";
 import { ActorSystem } from "../Actor/ActorSystem";
 import {
     ChatMessage,

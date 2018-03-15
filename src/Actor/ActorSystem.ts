@@ -6,8 +6,7 @@ import {
     Channel,
     Handler,
     InterActorSystemMessage,
-    LocalAddress,
-    BaseActorDefinition
+    LocalAddress
 } from "./interfaces";
 import * as uuid from "uuid";
 
@@ -126,13 +125,11 @@ export class ActorSystem {
         return this.ref<any>(fullAddress);
     };
 
-    ref = <T extends BaseActorDefinition>(address: Address): ActorRef<T> => {
+    ref = <T>(address: Address): ActorRef<T> => {
         return new ActorRef<T>(address, this);
     };
 
-    findActor = <T extends BaseActorDefinition>(
-        address: Address
-    ): ActorRef<T> | null => {
+    findActor = <T>(address: Address): ActorRef<T> | null => {
         if (address.actorSystemName !== this.name) {
             this.log(
                 "This address contains reference to other actor system, you won't find it in this actor system"

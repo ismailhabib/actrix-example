@@ -1,5 +1,5 @@
 import { ActorSystem } from "./ActorSystem";
-import { Address, Handler, BaseActorDefinition } from "./interfaces";
+import { Address, Handler } from "./interfaces";
 import { CancellablePromise } from "./Utils";
 
 type MailBoxMessage<T> = {
@@ -13,13 +13,17 @@ export type Method<T> = {
     [K in Exclude<keyof T, keyof Actor>]: T[K] extends Function ? T[K] : never
 };
 
+export type Value<T> = {
+    [K in Exclude<keyof T, keyof Actor>]: T[K] extends Function ? never : T[K]
+};
+
 export type ActorCons<T extends Actor> = new (
     name: string,
     address: Address,
     actorSystem: ActorSystem
 ) => T;
 
-export class ActorRef<T extends BaseActorDefinition> {
+export class ActorRef<T> {
     constructor(public address: Address, private actorSystem: ActorSystem) {}
 
     invoke(sender?: Address) {
@@ -63,7 +67,7 @@ export abstract class Actor {
         this.timerId = null;
     }
 
-    at<A extends BaseActorDefinition>(targetRef: ActorRef<A> | Address) {
+    at<A>(targetRef: ActorRef<A> | Address) {
         return new Proxy(
             {},
             {
@@ -114,7 +118,7 @@ export abstract class Actor {
     };
 
     // TODO: 'ref' vs 'at' will confuse people
-    ref = <T extends BaseActorDefinition>(address: Address) => {
+    ref = <T>(address: Address) => {
         return this.actorSystem.ref<T>(address);
     };
 
