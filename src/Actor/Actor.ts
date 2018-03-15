@@ -1,5 +1,6 @@
 import { ActorSystem } from "./ActorSystem";
 import { Address, Handler, BaseActorDefinition } from "./interfaces";
+import { CancellablePromise } from "./Utils";
 
 type MailBoxMessage<T> = {
     type: string;
@@ -43,6 +44,8 @@ export abstract class Actor {
     protected name: string;
     private mailBox: MailBoxMessage<keyof this>[] = [];
     private timerId: number | null;
+    private currentPromise: Promise<any> | CancellablePromise<any> | undefined;
+    protected currentlyProcessedMessage: MailBoxMessage<keyof this> | undefined;
     protected context: {
         senderAddress: Address | null;
         senderRef: ActorRef<any> | null;
@@ -77,11 +80,22 @@ export abstract class Actor {
         ) as Handler<A>;
     }
 
+    onNewMessage = <K extends keyof this>(
+        type: K,
+        payload: any,
+        senderAddress: Address | null
+    ) => {};
+
     pushToMailbox = <K extends keyof this>(
         type: K,
         payload: any,
         senderAddress: Address | null
     ): Promise<any> => {
+        try {
+            this.onNewMessage(type, payload, senderAddress);
+        } catch (error) {
+            console.log("Not sure why", error);
+        }
         return new Promise<any>((resolve, reject) => {
             this.mailBox.push({
                 type,
@@ -110,10 +124,10 @@ export abstract class Actor {
 
     // TODO: K extends keyof this is not actually the proper solution,
     // good for now though since it doesn't affect end-user
-    private async handleMessage<K extends keyof this>(
+    private handleMessage<K extends keyof this>(
         type: string,
         payload: any
-    ): Promise<any> {
+    ): Promise<any> | CancellablePromise<any> {
         return (this[type] as any)(payload);
     }
 
@@ -123,6 +137,16 @@ export abstract class Actor {
         }
     };
 
+    protected cancelCurrentExecution = () => {
+        console.log("try to cancel", this.currentPromise);
+        if (
+            this.currentPromise &&
+            typeof (this.currentPromise as any).cancel === "function"
+        ) {
+            console.log("cancelling");
+            (this.currentPromise as CancellablePromise<any>).cancel();
+        }
+    };
     private executeTick = async () => {
         // Note: if message drop semantics are added; make sure to call any pending callbacks with error!
         const mail = this.mailBox.shift();
@@ -139,9 +163,18 @@ export abstract class Actor {
                 senderAddress,
                 senderRef: senderAddress ? this.ref(senderAddress) : null
             };
-            result = await this.handleMessage(type, payload);
+
+            this.currentPromise = this.handleMessage(type, payload);
+            this.currentlyProcessedMessage = mail;
+            try {
+                result = await this.currentPromise;
+            } catch (er) {}
+            this.currentlyProcessedMessage = undefined;
+            this.currentPromise = undefined;
             success = true;
         } catch (ex) {
+            this.currentlyProcessedMessage = undefined;
+            this.currentPromise = undefined;
             if (!mail.callback) {
                 console.error(
                     `Actor ${

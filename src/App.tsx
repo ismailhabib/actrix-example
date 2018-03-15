@@ -2,6 +2,7 @@ import * as React from "react";
 import "./App.css";
 import { Chat } from "./Chat";
 import { Counter } from "./Counter";
+import { Switcher } from "./Switcher";
 
 const logo = require("./logo.svg");
 
@@ -16,6 +17,7 @@ class App extends React.Component<{}, {}> {
             <div className="App">
                 <Chat />
                 <Counter />
+                <Switcher />
             </div>
         );
     }
