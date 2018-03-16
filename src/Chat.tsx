@@ -51,46 +51,54 @@ export class Chat extends React.Component<
     render() {
         return (
             <div>
-                <input
-                    onChange={event => {
-                        this.setState({ userName: event.currentTarget.value });
-                    }}
-                    value={this.state.userName}
-                    readOnly={this.state.isConnected}
-                />
-                <button
-                    onClick={() => {
-                        this.actorRef!.invoke().connect({
-                            userName: this.state.userName
-                        });
-                        this.setState({ isConnected: true });
-                    }}
-                    disabled={this.state.isConnected}
-                >
-                    Connect
-                </button>
-                <textarea
-                    onChange={event => {
-                        this.setState({ myMessage: event.currentTarget.value });
-                    }}
-                    value={this.state.myMessage}
-                />
-                <button
-                    onClick={() => {
-                        this.actorRef!.invoke().send({
-                            message: this.state.myMessage
-                        });
-                        this.setState({ myMessage: "" });
-                    }}
-                    disabled={!this.state.isConnected}
-                >
-                    Post
-                </button>
-                {this.state.messages.map(message => (
-                    <div>
-                        <b>{message.userName}</b>:{message.message}
-                    </div>
-                ))}
+                <div>
+                    <input
+                        onChange={event => {
+                            this.setState({
+                                userName: event.currentTarget.value
+                            });
+                        }}
+                        value={this.state.userName}
+                        readOnly={this.state.isConnected}
+                    />
+                    <button
+                        onClick={() => {
+                            this.actorRef!.invoke().connect({
+                                userName: this.state.userName
+                            });
+                            this.setState({ isConnected: true });
+                        }}
+                        disabled={this.state.isConnected}
+                    >
+                        Connect
+                    </button>
+                </div>
+                <div>
+                    <textarea
+                        onChange={event => {
+                            this.setState({
+                                myMessage: event.currentTarget.value
+                            });
+                        }}
+                        value={this.state.myMessage}
+                    />
+                    <button
+                        onClick={() => {
+                            this.actorRef!.invoke().send({
+                                message: this.state.myMessage
+                            });
+                            this.setState({ myMessage: "" });
+                        }}
+                        disabled={!this.state.isConnected}
+                    >
+                        Post
+                    </button>
+                    {this.state.messages.map(message => (
+                        <div>
+                            <b>{message.userName}</b>:{message.message}
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }

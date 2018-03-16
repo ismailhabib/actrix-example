@@ -52,13 +52,14 @@ export class Switcher extends React.Component<
                     checked={this.state.roomName === "three"}
                 />
                 Three
+                <div>&nbsp;</div>
                 <div>{this.state.value}</div>
             </div>
         );
     }
 
     changeRoom = event => {
-        this.setState({ roomName: event.target.value, value: "..." });
+        this.setState({ roomName: event.target.value, value: "Loading..." });
         this.switcherActor.invoke().changeRoom(event.target.value);
     };
 }
@@ -83,7 +84,7 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
             }
             setTimeout(() => {
                 resolve(`Welcome to room ${roomName}`);
-            }, Math.random() * 5000);
+            }, Math.random() * 2000);
         });
     };
     registerListener = async (listener: (value: string) => void) => {

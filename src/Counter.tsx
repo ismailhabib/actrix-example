@@ -12,13 +12,13 @@ async function asyncInc(value: number) {
 
 export class Counter extends React.Component<
     {},
-    { naiveCounter: number; actorCounter: number }
+    { syncCounter: number; naiveCounter: number; actorCounter: number }
 > {
     naiveCounter: NaiveCounter;
     actorCounter: ActorRef<CounterAPI>;
     constructor(props) {
         super(props);
-        this.state = { naiveCounter: 0, actorCounter: 0 };
+        this.state = { syncCounter: 0, naiveCounter: 0, actorCounter: 0 };
         this.naiveCounter = new NaiveCounter();
         this.actorCounter = new ActorSystem().createActor(
             "myCounter",
@@ -36,14 +36,17 @@ export class Counter extends React.Component<
     render() {
         return (
             <div>
+                <div>&nbsp;</div>
                 <button onClick={this.handleButtonClick}>Increment</button>
+                <div>Sync counter: {this.state.syncCounter}</div>
                 <div>Naive counter: {this.state.naiveCounter}</div>
-                <div>Our counter: {this.state.actorCounter}</div>
+                <div>Actor counter: {this.state.actorCounter}</div>
             </div>
         );
     }
 
     handleButtonClick = async () => {
+        this.setState({ syncCounter: this.state.syncCounter + 1 });
         this.naiveCounter.increment();
         this.actorCounter.invoke().increment();
     };
