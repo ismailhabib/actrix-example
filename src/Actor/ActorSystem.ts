@@ -1,4 +1,4 @@
-import { Actor, ActorCons, ActorRef, Method } from "./Actor";
+import { Actor, ActorCons, ActorRef, ValidActorMethodProps } from "./Actor";
 import { EventEmitter } from "events";
 import {
     Message,
@@ -122,7 +122,7 @@ export class ActorSystem {
         };
         const actor = new Class(name, fullAddress, this);
         this.actorRegistry[address] = actor;
-        return this.ref<any>(fullAddress);
+        return this.ref<ValidActorMethodProps<T>>(fullAddress);
     };
 
     ref = <T>(address: Address): ActorRef<T> => {

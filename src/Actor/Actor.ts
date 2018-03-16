@@ -9,9 +9,30 @@ type MailBoxMessage<T> = {
     callback?: (error?: any, result?: any) => void;
 };
 
-export type Method<T> = {
-    [K in Exclude<keyof T, keyof Actor>]: T[K] extends Function ? T[K] : never
+export type ValidActorMethodProps<T> = Pick<
+    T,
+    {
+        [K in Exclude<keyof T, keyof Actor>]: T[K] extends (
+            ...args: any[]
+        ) => infer R
+            ? R extends Promise<any> ? K : never
+            : never
+    }[Exclude<keyof T, keyof Actor>]
+>;
+
+type Wow = {
+    no: number;
+    func: () => Promise<number>;
+    fun2: (number) => Promise<any>;
+    dds: () => CancellablePromise<number>;
+    assada: () => string;
 };
+type Wow2 = {
+    not: number;
+    func: () => Promise<number>;
+    fun2: (number) => Promise<any>;
+};
+let something: ValidActorMethodProps<Wow>;
 
 export type Value<T> = {
     [K in Exclude<keyof T, keyof Actor>]: T[K] extends Function ? never : T[K]
@@ -40,7 +61,7 @@ export class ActorRef<T> {
                         );
                 }
             }
-        ) as Method<T>;
+        ) as ValidActorMethodProps<T>;
     }
 }
 
