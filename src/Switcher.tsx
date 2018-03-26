@@ -1,8 +1,13 @@
 import * as React from "react";
 import { ActorSystem } from "./Actor/ActorSystem";
-import { ActorRef, Actor } from "./Actor/Actor";
+import {
+    ActorRef,
+    Actor,
+    ValidActorMethodPropNames,
+    PayloadPropNames
+} from "./Actor/Actor";
 import { Address } from "./Actor/interfaces";
-import { promisify } from "./Actor/Utils";
+import { promisify, CancellablePromise } from "./Actor/Utils";
 
 export class Switcher extends React.Component<
     {},
@@ -68,13 +73,13 @@ type RoomName = "one" | "two" | "three";
 
 type SwitcherActorAPI = {
     registerListener: (listener: (value: string) => void) => Promise<void>;
-    changeRoom: (roomName: RoomName) => Promise<void>;
+    changeRoom: (roomName: RoomName) => CancellablePromise<void>;
 };
 
 class SwitcherActor extends Actor implements SwitcherActorAPI {
     listener: ((value: string) => void) | undefined;
 
-    openRoom = async roomName => {
+    private openRoom = async roomName => {
         return new Promise<string>((resolve, reject) => {
             const openRoomMsg = this.mailBox.find(
                 mail => mail.type === "openRoom"
@@ -97,9 +102,12 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
         this.listener && this.listener(value);
     }
 
-    onNewMessage = <K extends keyof this>(
+    onNewMessage = <
+        K extends ValidActorMethodPropNames<this>,
+        L extends PayloadPropNames<this>
+    >(
         type: K,
-        payload: any,
+        payload: L,
         senderAddress: Address | null
     ) => {
         if (

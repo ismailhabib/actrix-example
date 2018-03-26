@@ -3,40 +3,28 @@ import { Address, Handler } from "./interfaces";
 import { CancellablePromise } from "./Utils";
 
 type MailBoxMessage<T> = {
-    type: string;
-    payload: any;
+    type: ValidActorMethodPropNames<T>;
+    payload: PayloadPropNames<T>;
     senderAddress: Address | null;
     callback?: (error?: any, result?: any) => void;
 };
 
-export type ValidActorMethodProps<T> = Pick<
-    T,
-    {
-        [K in Exclude<keyof T, keyof Actor>]: T[K] extends (
-            ...args: any[]
-        ) => infer R
-            ? R extends Promise<any> ? K : never
-            : never
-    }[Exclude<keyof T, keyof Actor>]
->;
+export type ValidActorMethodProps<T> = Pick<T, ValidActorMethodPropNames<T>>;
+export type ValidActorMethodPropNames<T> = {
+    [K in Exclude<keyof T, keyof Actor>]: T[K] extends (
+        ...args: any[]
+    ) => infer R
+        ? R extends Promise<any> ? K : never
+        : never
+}[Exclude<keyof T, keyof Actor>];
 
-type Wow = {
-    no: number;
-    func: () => Promise<number>;
-    fun2: (number) => Promise<any>;
-    dds: () => CancellablePromise<number>;
-    assada: () => string;
-};
-type Wow2 = {
-    not: number;
-    func: () => Promise<number>;
-    fun2: (number) => Promise<any>;
-};
-let something: ValidActorMethodProps<Wow>;
-
-export type Value<T> = {
-    [K in Exclude<keyof T, keyof Actor>]: T[K] extends Function ? never : T[K]
-};
+export type PayloadPropNames<T> = {
+    [K in Exclude<keyof T, keyof Actor>]: T[K] extends (
+        _: infer S
+    ) => Promise<any>
+        ? S
+        : never
+}[Exclude<keyof T, keyof Actor>];
 
 export type ActorCons<T extends Actor> = new (
     name: string,
@@ -67,10 +55,10 @@ export class ActorRef<T> {
 
 export abstract class Actor {
     protected name: string;
-    protected mailBox: MailBoxMessage<keyof this>[] = [];
+    protected mailBox: MailBoxMessage<this>[] = [];
     private timerId: number | null;
     private currentPromise: Promise<any> | CancellablePromise<any> | undefined;
-    protected currentlyProcessedMessage: MailBoxMessage<keyof this> | undefined;
+    protected currentlyProcessedMessage: MailBoxMessage<this> | undefined;
     protected context: {
         senderAddress: Address | null;
         senderRef: ActorRef<any> | null;
@@ -105,15 +93,21 @@ export abstract class Actor {
         ) as Handler<A>;
     }
 
-    onNewMessage = <K extends keyof this>(
+    onNewMessage = <
+        K extends ValidActorMethodPropNames<this>,
+        L extends PayloadPropNames<this>
+    >(
         type: K,
-        payload: any,
+        payload: L,
         senderAddress: Address | null
     ) => {};
 
-    pushToMailbox = <K extends keyof this>(
+    pushToMailbox = <
+        K extends ValidActorMethodPropNames<this>,
+        L extends PayloadPropNames<this>
+    >(
         type: K,
-        payload: any,
+        payload: L,
         senderAddress: Address | null
     ): Promise<any> => {
         try {
