@@ -2,7 +2,7 @@ import * as express from "express";
 import * as path from "path";
 import * as bodyParser from "body-parser";
 import * as socketIO from "socket.io";
-import { ActorSystem } from "./Actor/ActorSystem";
+import { ActorSystem } from "actrix";
 import { ChatServerActor } from "./ServerActor/ChatServerActor";
 
 const app = express();

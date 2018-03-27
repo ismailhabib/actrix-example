@@ -1,12 +1,11 @@
 import { ChatMessage } from "./ServerActor/ChatServerActor";
 import * as React from "react";
 import * as ioClient from "socket.io-client";
-import { ActorSystem } from "./Actor/ActorSystem";
+import { ActorSystem, ActorRef } from "actrix";
 import {
     ChatClientActor,
     ChatClientActorAPI
 } from "./ClientActor/ChatClientActor";
-import { ActorRef } from "./Actor/Actor";
 
 export class Chat extends React.Component<
     {},

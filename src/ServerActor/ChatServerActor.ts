@@ -1,6 +1,4 @@
-import { Actor, ActorRef } from "../Actor/Actor";
-import { Address } from "../Actor/interfaces";
-import { ActorSystem } from "../Actor/ActorSystem";
+import { Actor, ActorRef, Address, ActorSystem } from "actrix";
 import { ChatClientActorAPI } from "../ClientActor/ChatClientActor";
 import deepEqual = require("deep-equal");
 

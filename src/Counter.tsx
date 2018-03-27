@@ -1,6 +1,5 @@
 import * as React from "react";
-import { Actor, ActorRef } from "./Actor/Actor";
-import { ActorSystem } from "./Actor/ActorSystem";
+import { Actor, ActorRef, ActorSystem } from "actrix";
 
 async function asyncInc(value: number) {
     return new Promise<number>((resolve, reject) => {

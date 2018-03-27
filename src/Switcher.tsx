@@ -1,13 +1,14 @@
 import * as React from "react";
-import { ActorSystem } from "./Actor/ActorSystem";
 import {
+    ActorSystem,
     ActorRef,
     Actor,
     ValidActorMethodPropNames,
-    PayloadPropNames
-} from "./Actor/Actor";
-import { Address } from "./Actor/interfaces";
-import { promisify, CancellablePromise } from "./Actor/Utils";
+    PayloadPropNames,
+    Address,
+    promisify,
+    CancellablePromise
+} from "actrix";
 
 export class Switcher extends React.Component<
     {},
@@ -97,19 +98,12 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
     };
 
     changeRoom = promisify(this.changeRoomHelper);
-    *changeRoomHelper(roomName: RoomName) {
+    private *changeRoomHelper(roomName: RoomName) {
         const value = yield this.openRoom(roomName);
         this.listener && this.listener(value);
     }
 
-    onNewMessage = <
-        K extends ValidActorMethodPropNames<this>,
-        L extends PayloadPropNames<this>
-    >(
-        type: K,
-        payload: L,
-        senderAddress: Address | null
-    ) => {
+    onNewMessage = (type: any, payload: any, senderAddress: Address | null) => {
         if (
             this.currentlyProcessedMessage &&
             this.currentlyProcessedMessage.type === "changeRoom" &&

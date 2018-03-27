@@ -1,6 +1,4 @@
-import { Actor } from "../Actor/Actor";
-import { Address, Handler } from "../Actor/interfaces";
-import { ActorSystem } from "../Actor/ActorSystem";
+import { Actor, Address, Handler, ActorSystem } from "actrix";
 import {
     ChatMessage,
     ChatServerActor,
