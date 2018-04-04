@@ -64,9 +64,14 @@ export class Switcher extends React.Component<
         );
     }
 
-    changeRoom = event => {
+    changeRoom = async event => {
         this.setState({ roomName: event.target.value, value: "Loading..." });
-        this.switcherActor.invoke().changeRoom(event.target.value);
+        // TODO: not sure if sending a message should trigger any exception at all
+        try {
+            await this.switcherActor.invoke().changeRoom(event.target.value);
+        } catch (error) {
+            console.log("Changing room failed", error);
+        }
     };
 }
 
