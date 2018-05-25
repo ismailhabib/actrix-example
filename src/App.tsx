@@ -15,8 +15,11 @@ class App extends React.Component<{}, {}> {
     render() {
         return (
             <div className="App">
+                <h1>Chat example (open in multiple tabs/windows/browsers)</h1>
                 <Chat />
+                <h1>Counter example</h1>
                 <Counter />
+                <h1>Cancellation example</h1>
                 <Switcher />
             </div>
         );

@@ -35,11 +35,10 @@ export class Counter extends React.Component<
     render() {
         return (
             <div>
-                <div>&nbsp;</div>
                 <button onClick={this.handleButtonClick}>Increment</button>
                 <div>Sync counter: {this.state.syncCounter}</div>
-                <div>Naive counter: {this.state.naiveCounter}</div>
-                <div>Actor counter: {this.state.actorCounter}</div>
+                <div>Naive async counter: {this.state.naiveCounter}</div>
+                <div>Actor async counter: {this.state.actorCounter}</div>
             </div>
         );
     }
