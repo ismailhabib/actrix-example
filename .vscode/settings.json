@@ -1,5 +1,5 @@
 {
-    "workbench.colorTheme": "Solarized Light",
+    "workbench.colorTheme": "Bluloco Dark Operator Mono",
     "prettier.tabWidth": 4,
     "prettier.proseWrap": false,
     "typescript.tsdk": "node_modules/typescript/lib",
