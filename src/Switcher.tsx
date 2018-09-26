@@ -22,10 +22,10 @@ export class Switcher extends React.Component<
         super(props);
         this.state = { roomName: "one", value: "" };
 
-        this.switcherActor = new ActorSystem().createActor(
-            "mySwitcher",
-            SwitcherActor
-        );
+        this.switcherActor = new ActorSystem().createActor({
+            name: "mySwitcher",
+            Class: SwitcherActor
+        });
 
         this.switcherActor.invoke().registerListener(value => {
             this.setState({ value });
@@ -108,7 +108,7 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
         this.listener && this.listener(value);
     }
 
-    onNewMessage = (type: any, payload: any, senderAddress: Address | null) => {
+    onNewMessage = (type, payload, senderAddress) => {
         if (
             this.currentlyProcessedMessage &&
             this.currentlyProcessedMessage.type === "changeRoom" &&

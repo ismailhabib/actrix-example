@@ -16,7 +16,7 @@ console.log("Web socket server is started");
 
 const actorSystem = new ActorSystem("server");
 
-actorSystem.createActor("chatActor", ChatServerActor);
+actorSystem.createActor({ name: "chatActor", Class: ChatServerActor });
 
 io.of("/chat").on("connection", socket => {
     actorSystem.register(socket);

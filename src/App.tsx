@@ -6,7 +6,7 @@ import { Switcher } from "./Switcher";
 
 const logo = require("./logo.svg");
 
-class App extends React.Component<{}, {}> {
+export class App extends React.Component<{}, {}> {
     constructor(props: {}) {
         super(props);
         this.state = { message: "no message" };
@@ -25,5 +25,3 @@ class App extends React.Component<{}, {}> {
         );
     }
 }
-
-export default App;
