@@ -35,10 +35,10 @@ export class Chat extends React.Component<
         this.actorSystem = new ActorSystem();
         this.actorSystem.register(socket);
 
-        this.actorRef = this.actorSystem.createActor(
-            this.name,
-            ChatClientActor
-        );
+        this.actorRef = this.actorSystem.createActor({
+            name: this.name,
+            Class: ChatClientActor
+        });
 
         this.actorRef.invoke().registerListener({
             fn: (messages: ChatMessage[]) => {

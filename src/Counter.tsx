@@ -19,10 +19,10 @@ export class Counter extends React.Component<
         super(props);
         this.state = { syncCounter: 0, naiveCounter: 0, actorCounter: 0 };
         this.naiveCounter = new NaiveCounter();
-        this.actorCounter = new ActorSystem().createActor(
-            "myCounter",
-            CounterActor
-        );
+        this.actorCounter = new ActorSystem().createActor({
+            name: "myCounter",
+            Class: CounterActor
+        });
 
         this.naiveCounter.registerListener(number => {
             this.setState({ naiveCounter: number });
