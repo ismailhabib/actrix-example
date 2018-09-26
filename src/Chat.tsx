@@ -72,6 +72,7 @@ export class Chat extends React.Component<
                         Connect
                     </button>
                 </div>
+                <div>&nbsp;</div>
                 <div>
                     <textarea
                         onChange={event => {
@@ -81,6 +82,7 @@ export class Chat extends React.Component<
                         }}
                         value={this.state.myMessage}
                     />
+                    <div>&nbsp;</div>
                     <button
                         onClick={() => {
                             this.actorRef!.invoke().send({
@@ -92,6 +94,7 @@ export class Chat extends React.Component<
                     >
                         Post
                     </button>
+                    <div>&nbsp;</div>
                     {this.state.messages.map(message => (
                         <div>
                             <b>{message.userName}</b>:{message.message}
