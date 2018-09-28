@@ -7,7 +7,8 @@ import {
     PayloadPropNames,
     Address,
     promisify,
-    CancellablePromise
+    CancellablePromise,
+    Listener
 } from "actrix";
 
 export class Switcher extends React.Component<
@@ -36,25 +37,20 @@ export class Switcher extends React.Component<
             valueFromActor: ""
         };
 
-        this.naiveSwitcher = new NaiveSwitcher();
-
-        this.naiveSwitcher.registerListener(valueFromNaiveImpl => {
+        this.naiveSwitcher = new NaiveSwitcher(valueFromNaiveImpl => {
             this.setState({ valueFromNaiveImpl });
         });
 
-        this.betterSwitcher = new BetterSwitcher();
-
-        this.betterSwitcher.registerListener(valueFromBetterImpl => {
+        this.betterSwitcher = new BetterSwitcher(valueFromBetterImpl => {
             this.setState({ valueFromBetterImpl });
         });
 
         this.switcherActor = new ActorSystem().createActor({
             name: "mySwitcher",
-            Class: SwitcherActor
-        });
-
-        this.switcherActor.invoke().registerListener(valueFromActor => {
-            this.setState({ valueFromActor });
+            actorClass: SwitcherActor,
+            paramOptions: valueFromActor => {
+                this.setState({ valueFromActor });
+            }
         });
     }
     render() {
@@ -120,12 +116,15 @@ export class Switcher extends React.Component<
 type RoomName = "one" | "two" | "three";
 
 type NaiveSwitcherAPI = {
-    registerListener: (listener: (value: string) => void) => Promise<void>;
     changeRoom: (roomName: RoomName) => Promise<void>;
 };
 
 class NaiveSwitcher implements NaiveSwitcherAPI {
-    listener: ((value: string) => void) | undefined;
+    listener: Listener<string> | undefined;
+
+    constructor(listener: Listener<string>) {
+        this.listener = listener;
+    }
 
     openRoom = async roomName => {
         return new Promise<string>((resolve, reject) => {
@@ -135,9 +134,6 @@ class NaiveSwitcher implements NaiveSwitcherAPI {
         });
     };
 
-    registerListener = async (listener: (value: string) => void) => {
-        this.listener = listener;
-    };
     changeRoom = async (roomName: RoomName) => {
         const value = await this.openRoom(roomName);
         this.listener && this.listener(value);
@@ -145,15 +141,17 @@ class NaiveSwitcher implements NaiveSwitcherAPI {
 }
 
 type BetterSwitcherAPI = {
-    registerListener: (listener: (value: string) => void) => Promise<void>;
     changeRoom: (roomName: RoomName) => Promise<void>;
 };
 
 class BetterSwitcher implements BetterSwitcherAPI {
-    listener: ((value: string) => void) | undefined;
+    listener: Listener<string> | undefined;
 
     latestTaskId = 0;
 
+    constructor(listener: Listener<string>) {
+        this.listener = listener;
+    }
     openRoom = async roomName => {
         this.latestTaskId++;
         const currentTaskId = this.latestTaskId;
@@ -169,9 +167,6 @@ class BetterSwitcher implements BetterSwitcherAPI {
         });
     };
 
-    registerListener = async (listener: (value: string) => void) => {
-        this.listener = listener;
-    };
     changeRoom = async (roomName: RoomName) => {
         const value = await this.openRoom(roomName);
         this.listener && this.listener(value);
@@ -179,11 +174,11 @@ class BetterSwitcher implements BetterSwitcherAPI {
 }
 
 type SwitcherActorAPI = {
-    registerListener: (listener: (value: string) => void) => Promise<void>;
     changeRoom: (roomName: RoomName) => CancellablePromise<void>;
 };
-class SwitcherActor extends Actor implements SwitcherActorAPI {
-    listener: ((value: string) => void) | undefined;
+class SwitcherActor extends Actor<Listener<string>>
+    implements SwitcherActorAPI {
+    listener: Listener<string> | undefined;
 
     private openRoom = async roomName => {
         return new Promise<string>((resolve, reject) => {
@@ -199,9 +194,9 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
             }, Math.random() * 2000);
         });
     };
-    registerListener = async (listener: (value: string) => void) => {
+    init(listener: Listener<string>) {
         this.listener = listener;
-    };
+    }
 
     changeRoom = promisify(this.changeRoomHelper);
     private *changeRoomHelper(roomName: RoomName) {
