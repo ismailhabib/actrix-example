@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Actor, ActorRef, ActorSystem } from "actrix";
+import { Actor, ActorRef, ActorSystem, Listener } from "actrix";
 
 async function asyncInc(value: number) {
     return new Promise<number>((resolve, reject) => {
@@ -18,17 +18,15 @@ export class Counter extends React.Component<
     constructor(props) {
         super(props);
         this.state = { syncCounter: 0, naiveCounter: 0, actorCounter: 0 };
-        this.naiveCounter = new NaiveCounter();
-        this.actorCounter = new ActorSystem().createActor({
-            name: "myCounter",
-            Class: CounterActor
-        });
-
-        this.naiveCounter.registerListener(number => {
+        this.naiveCounter = new NaiveCounter(number => {
             this.setState({ naiveCounter: number });
         });
-        this.actorCounter.invoke().registerListener(number => {
-            this.setState({ actorCounter: number });
+        this.actorCounter = new ActorSystem().createActor({
+            name: "myCounter",
+            actorClass: CounterActor,
+            paramOptions: number => {
+                this.setState({ actorCounter: number });
+            }
         });
     }
 
@@ -52,28 +50,27 @@ export class Counter extends React.Component<
 }
 
 type CounterAPI = {
-    registerListener: (listener: (counter: number) => void) => Promise<void>;
     increment: () => Promise<void>;
 };
 
 class NaiveCounter implements CounterAPI {
     counter = 0;
-    listener: ((counter: number) => void) | undefined;
-    registerListener = async (listener: (counter: number) => void) => {
+    listener: Listener<number> | undefined;
+    constructor(listener: Listener<number>) {
         this.listener = listener;
-    };
+    }
     increment = async () => {
         this.counter = await asyncInc(this.counter);
         this.listener && this.listener(this.counter);
     };
 }
 
-class CounterActor extends Actor implements CounterAPI {
+class CounterActor extends Actor<Listener<number>> implements CounterAPI {
     counter = 0;
-    listener: ((counter: number) => void) | undefined;
-    registerListener = async (listener: (counter: number) => void) => {
+    listener: Listener<number> | undefined;
+    init(listener: Listener<number>) {
         this.listener = listener;
-    };
+    }
     increment = async () => {
         this.counter = await asyncInc(this.counter);
         this.listener && this.listener(this.counter);

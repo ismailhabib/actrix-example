@@ -1,5 +1,5 @@
 {
-    "workbench.colorTheme": "Dracula Soft",
+    "workbench.colorTheme": "Solarized Light",
     "prettier.tabWidth": 4,
     "prettier.proseWrap": false,
     "typescript.tsdk": "node_modules/typescript/lib",

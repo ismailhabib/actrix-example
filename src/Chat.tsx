@@ -37,7 +37,7 @@ export class Chat extends React.Component<
 
         this.actorRef = this.actorSystem.createActor({
             name: this.name,
-            Class: ChatClientActor
+            actorClass: ChatClientActor
         });
 
         this.actorRef.invoke().registerListener({
