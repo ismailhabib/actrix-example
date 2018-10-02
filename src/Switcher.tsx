@@ -48,6 +48,7 @@ export class Switcher extends React.Component<
         this.switcherActor = new ActorSystem().createActor({
             name: "mySwitcher",
             actorClass: SwitcherActor,
+            strategies: ["IgnoreOlderMessageWithTheSameType"],
             paramOptions: valueFromActor => {
                 this.setState({ valueFromActor });
             }
@@ -182,13 +183,6 @@ class SwitcherActor extends Actor<Listener<string>>
 
     private openRoom = async roomName => {
         return new Promise<string>((resolve, reject) => {
-            const openRoomMsg = this.mailBox.find(
-                mail => mail.type === "openRoom"
-            );
-            if (openRoomMsg) {
-                reject();
-            }
-
             setTimeout(() => {
                 resolve(`Welcome to room ${roomName}`);
             }, Math.random() * 2000);
@@ -203,14 +197,4 @@ class SwitcherActor extends Actor<Listener<string>>
         const value = yield this.openRoom(roomName);
         this.listener && this.listener(value);
     }
-
-    onNewMessage = (type, payload, senderAddress) => {
-        if (
-            this.currentlyProcessedMessage &&
-            this.currentlyProcessedMessage.type === "changeRoom" &&
-            type === "changeRoom"
-        ) {
-            this.cancelCurrentExecution();
-        }
-    };
 }
