@@ -25,7 +25,7 @@ export class ChatServerActor extends Actor implements ChatServerActorAPI {
             userName: payload.userName,
             address: senderRef!.address!
         });
-        this.at(senderRef).update({
+        this.sendTo(senderRef).update({
             messages: this.messages
         });
     };
@@ -57,7 +57,7 @@ export class ChatServerActor extends Actor implements ChatServerActorAPI {
         this.messages.push(newMessage);
 
         this.subscribers.forEach(subscriber => {
-            this.at<ChatClientActorAPI>(subscriber.address).update({
+            this.sendTo<ChatClientActorAPI>(subscriber.address).update({
                 messages: [newMessage]
             });
         });

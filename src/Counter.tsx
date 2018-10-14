@@ -45,7 +45,7 @@ export class Counter extends React.Component<
     handleButtonClick = async () => {
         this.setState({ syncCounter: this.state.syncCounter + 1 });
         this.naiveCounter.increment();
-        this.actorCounter.invoke().increment();
+        this.actorCounter.send().increment();
     };
 }
 

@@ -40,7 +40,7 @@ export class Chat extends React.Component<
             actorClass: ChatClientActor
         });
 
-        this.actorRef.invoke().registerListener({
+        this.actorRef.send().registerListener({
             fn: (messages: ChatMessage[]) => {
                 console.log("Updating component state");
                 this.setState({ messages: messages });
@@ -62,7 +62,7 @@ export class Chat extends React.Component<
                     />
                     <button
                         onClick={() => {
-                            this.actorRef!.invoke().connect({
+                            this.actorRef!.send().connect({
                                 userName: this.state.userName
                             });
                             this.setState({ isConnected: true });
@@ -85,7 +85,7 @@ export class Chat extends React.Component<
                     <div>&nbsp;</div>
                     <button
                         onClick={() => {
-                            this.actorRef!.invoke().send({
+                            this.actorRef!.send().send({
                                 message: this.state.myMessage
                             });
                             this.setState({ myMessage: "" });

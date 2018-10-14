@@ -105,12 +105,7 @@ export class Switcher extends React.Component<
         this.betterSwitcher.changeRoom(event.target.value).catch(error => {
             console.log("Changing room failed", error);
         });
-        this.switcherActor
-            .invoke()
-            .changeRoom(event.target.value)
-            .catch(error => {
-                console.log("Changing room failed", error);
-            });
+        this.switcherActor.send().changeRoom(event.target.value);
     };
 }
 
