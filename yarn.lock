@@ -137,9 +137,10 @@ acorn@^5.0.0:
   version "5.7.3"
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-5.7.3.tgz#67aa231bf8812974b85235a96771eb6bd07ea279"
 
-actrix@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/actrix/-/actrix-3.0.0.tgz#6a92414354ff41aa31ea366f3e7c6acfb977ebf3"
+actrix@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/actrix/-/actrix-4.0.0.tgz#08ee3a243e038e5f6abc67ef89837820f80f0142"
+  integrity sha512-OnN8JPkqR9mtQMbl0vjhfMwPQpx8213x2YCCknouZNhg0vfCJGejcVOSQMqHSCPiMuPi14rgo2cvs72cV2RSuA==
 
 address@1.0.3, address@^1.0.1:
   version "1.0.3"

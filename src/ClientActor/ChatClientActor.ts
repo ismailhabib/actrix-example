@@ -36,11 +36,11 @@ export class ChatClientActor extends Actor implements ChatClientActorAPI {
     };
 
     send = async payload => {
-        this.at(this.serverActorRef).post({ message: payload.message });
+        this.sendTo(this.serverActorRef).post({ message: payload.message });
     };
 
     connect = async payload => {
         this.log("Connecting");
-        this.at(this.serverActorRef).subscribe(payload);
+        this.sendTo(this.serverActorRef).subscribe(payload);
     };
 }
